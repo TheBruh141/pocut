@@ -1,0 +1,90 @@
+Screen {
+    layers: one two three;
+}
+Tab {
+    overflow: auto;
+}
+
+TimeDisplay {
+    content-align: center middle;
+    text-opacity: 60%;
+    height: 1fr;
+}
+
+$phase_show_border_color: white;
+
+#clock_cluster {
+    outline: round white 40%;
+    padding: 2 8;
+    max-height: 70%;
+    align: center middle !important;
+
+    #main_clock {
+        max-height: 5;
+        border: white 12%;
+        border-title-color: grey;
+    }
+
+    #phase_show {
+        content-align: center middle;
+        min-width: 50%;
+        height: 3;
+        overflow: scroll;
+        outline: gray;
+        outline-top: none;
+        outline-bottom: round $phase_show_border_color;
+        outline-left: round $phase_show_border_color;
+        outline-right: round  $phase_show_border_color;
+        offset: 0 -1;
+    }
+
+    #time_left_progress_bar{
+        width: 1fr;
+        align: center bottom;
+        offset: 0 2;
+    }
+}
+
+
+Button {
+    width: 16;
+}
+
+#start {
+    align: center top;
+}
+
+#stop {
+    display: none;
+}
+
+#reset {
+
+}
+
+.started {
+    text-style: bold;
+    /* background: $success; */
+    color: $text;
+}
+
+.started TimeDisplay {
+    text-opacity: 100%;
+}
+
+.started #start {
+    display: none
+}
+
+.started #stop {
+    align: center top;
+    display: block
+}
+
+.started #reset {
+    visibility: hidden
+}
+
+.column {
+    width: 1fr;
+}

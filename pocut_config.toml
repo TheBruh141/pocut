@@ -1,0 +1,6 @@
+[durations]
+work_duration = 2100
+break_duration = 600
+
+[audio]
+finish_sound = "sounds/bad-to-the-bone.mp3"
