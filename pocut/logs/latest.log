@@ -1,0 +1,7 @@
+2024-12-07 11:23:25 | DEBUG    | pocut.config:configure_logging:85 | Logging configured. Debug mode: False, Log file: logs/latest.log
+2024-12-07 11:23:25 | DEBUG    | __main__:<module>:70 | Starting PocutApp...
+2024-12-07 11:23:25 | WARNING  | pocut.state:load_config:32 | Configuration file not found. Using default values.
+2024-12-07 11:23:25 | INFO     | pocut.state:save_config:46 | Saving configuration to pocut_config.toml
+2024-12-07 11:26:00 | DEBUG    | pocut.config:configure_logging:85 | Logging configured. Debug mode: False, Log file: logs/latest.log
+2024-12-07 11:26:00 | DEBUG    | __main__:<module>:70 | Starting PocutApp...
+2024-12-07 11:26:00 | DEBUG    | pocut.state:load_config:29 | Loading configuration from pocut_config.toml
