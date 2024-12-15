@@ -2,3 +2,4 @@ pygame~=2.6.1
 loguru~=0.7.3
 toml~=0.10.2
 textual~=0.89.1
+pytest~=8.3.4

@@ -58,7 +58,7 @@ if __name__ == '__main__':
     print("Testing `audio_handler`")
     initialize_audio()
     set_volume(1)
-    play_sound("sounds/bad-to-the-bone.mp3")
+    play_sound("../../assets/sounds/bad-to-the-bone.mp3")
     input("Press Enter to stop the sound...")
     stop_sound()
     print("Done")

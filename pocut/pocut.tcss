@@ -5,6 +5,13 @@ Tab {
     overflow: auto;
 }
 
+#todo_add_modal {
+    #outer_container {
+        border: gray;
+        border-title-color: white;
+    }
+}
+
 TimeDisplay {
     content-align: center middle;
     text-opacity: 60%;
@@ -12,6 +19,71 @@ TimeDisplay {
 }
 
 $phase_show_border_color: white;
+
+#settings_container {
+    #sound_settings {
+        border: gray;
+        border-title-color: white;
+        max-height: 5;
+        #browse_sound_button {
+            dock: right;
+        }
+    }
+    #time_settings {
+        Input {
+            padding: 0 2;
+            offset: 0 0;
+        }
+        border: gray;
+        border-title-color: white;
+        max-height: 10;
+        #browse_sound_button {
+            dock: right;
+    }
+    }
+}
+
+
+#settings_tab{
+
+    #duration_settings {
+        border: gray;
+        border-title-color: white;
+    }
+    Label {
+        text-style: bold;
+        padding: 0 4;
+    }
+}
+#file_selector_modal {
+    align: center middle ;
+    border: round gray;
+    padding: 1;
+    #file_selector_help {
+        max-width: 50%;
+    }
+    #confirm_button {
+        dock: right;
+    }
+}
+
+.modal-title {
+    /*: bold;*/
+    margin: 1 0;
+}
+
+.modal-actions {
+    align: right middle;
+    /*gap: 0.5rem;*/
+}
+
+.success-message {
+    color: green;
+}
+
+.error-message {
+    color: red;
+}
 
 #clock_cluster {
     outline: round white 40%;

@@ -1,12 +1,15 @@
 from textual.app import App, ComposeResult
 from textual.widgets import TabbedContent, TabPane
 
-from pocut.state import AppState
-from pocut.config import DEFAULT_CONFIG_PATH, parse_args, configure_logging
-from pocut.widgets.pomodoro_clock import PomodoroClock
-from pocut.widgets.settings_tab import SettingsTab
-
 from loguru import logger
+
+from pocut import AppState
+from pocut.config import DEFAULT_CONFIG_PATH, parse_args, configure_logging
+from pocut.widgets import PomodoroClock, SettingsTab
+from pocut.widgets.todo_screen import TodoTab
+
+
+# from pocut.widgets.todo_screen import TodoTab
 
 
 class PocutApp(App):
@@ -41,6 +44,9 @@ class PocutApp(App):
         with TabbedContent(id="the-parent"):
             with TabPane("Pomodoro"):
                 yield PomodoroClock(self.state)
+            with TabPane("Todos"):
+                yield TodoTab(self.state)
+
             with TabPane("Settings"):
                 yield SettingsTab(self.state)
 
@@ -63,10 +69,3 @@ class PocutApp(App):
         self.theme = "textual-dark" if self.theme == "textual-light" else "textual-light"
 
 
-if __name__ == "__main__":
-    args = parse_args()
-    configure_logging(args.debug, args.log_file, args.max_debug_file_size)
-
-    logger.debug("Starting PocutApp...")
-    app = PocutApp(debug=args.debug)
-    app.run()

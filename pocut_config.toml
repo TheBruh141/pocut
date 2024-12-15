@@ -1,6 +1,11 @@
+dark_mode = false
+
 [durations]
-work_duration = 2100
+work_duration = 2400
 break_duration = 600
 
 [audio]
-finish_sound = "sounds/bad-to-the-bone.mp3"
+finish_sound = "assets/sounds/bad-to-the-bone.mp3"
+
+[todo]
+database_file_path = "pocut/db/todo.sqlite"
