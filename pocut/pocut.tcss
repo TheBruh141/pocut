@@ -41,6 +41,12 @@ $phase_show_border_color: white;
             dock: right;
     }
     }
+
+    #misc {
+        border: gray;
+        border-title-color: white;
+        height: 5w;
+    }
 }
 
 
@@ -91,8 +97,16 @@ $phase_show_border_color: white;
     max-height: 70%;
     align: center middle !important;
 
+    #timer_digits {
+            /*
+            please note that this element is centered in
+            a hacky way using the Center widget before mounting.
+            */
+            width: auto;
+        }
     #main_clock {
-        max-height: 5;
+        max-height: 9;
+        align: center middle;
         border: white 12%;
         border-title-color: grey;
     }
@@ -115,6 +129,7 @@ $phase_show_border_color: white;
         align: center bottom;
         offset: 0 2;
     }
+
 }
 
 

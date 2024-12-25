@@ -6,7 +6,7 @@
 |---------------|----------|---------------------------------------------------|
 | `id`          | INTEGER  | Unique task ID (Primary Key).                     |
 | `title`       | TEXT     | The title of the task                             | 
-| `text`        | TEXT     | Description of the task.                          |
+| `description` | TEXT     | Description of the task.                          |
 | `completed`   | BOOLEAN  | Task completion status (`0` or `1`).              |
 | `priority`    | INTEGER  | Priority level (`1` to `5`).                      |
 | `category_id` | INTEGER  | Foreign key referencing the `id` in `categories`. |
@@ -17,10 +17,11 @@
 
 #### **Categories Table**
 
-| Column       | Type     | Description                              |
-|--------------|----------|------------------------------------------|
-| `id`         | INTEGER  | Unique category ID (Primary Key).        |
-| `name`       | TEXT     | Name of the category.                    |
-| `created_at` | DATETIME | Timestamp when the category was created. |
+| Column        | Type     | Description                              |
+|---------------|----------|------------------------------------------|
+| `id`          | INTEGER  | Unique category ID (Primary Key).        |
+| `name`        | TEXT     | Name of the category.                    |
+| `description` | TEXT     | Description of the category              | 
+| `created_at`  | DATETIME | Timestamp when the category was created. |
 
 ---

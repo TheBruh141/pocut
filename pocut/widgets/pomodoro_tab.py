@@ -2,10 +2,9 @@ from textual.app import ComposeResult
 from textual.containers import Vertical, Center
 from textual.reactive import reactive
 from textual.widgets import (Static, Button, Footer,
-                             ProgressBar, Label)
+                             ProgressBar, Label, Digits)
 
 from pocut.state import AppState
-from loguru import logger
 
 from pocut.utils.audio import initialize_audio, set_volume, play_sound_blocking
 
@@ -43,11 +42,15 @@ class TimeDisplay(Static):
     timer_active = reactive(False)
     paused = reactive(False)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, state: AppState, *args, **kwargs):
         """
         @brief Initialize TimeDisplay with an optional event callback.
         """
         super().__init__(*args, **kwargs)
+        self.time_str = None
+        self.state = state
+        # self.notify(f"{self.time_str=}, {self.state.work_duration}")
+        self.digits = None
         self.update_timer = None
         self.on_time_up_callback = None
         self.progress_bar = None  # ProgressBar instance
@@ -72,8 +75,14 @@ class TimeDisplay(Static):
             id="time_left_progress_bar",
             show_eta=False,
         )
-
+        self.time_str: str = self.calculate_time(self.state.work_duration)
+        self.digits: Digits = Digits(value=self.time_str, id="timer_digits")
+        self.mount(Center(self.digits))
         self.mount(self.progress_bar)
+        self.update_progress_bar()
+
+        # initialize the time for the cold start
+        self.reset()
 
     def update_time(self) -> None:
         """
@@ -82,12 +91,24 @@ class TimeDisplay(Static):
         if self.remaining_time > 0:
             self.remaining_time -= 1
             self.update_progress_bar()
+            self.digits.update(self.time_str)
         else:
             self.stop()
             if self.on_time_up_callback:
-                logger.debug("Calling on_time_up callback")
                 self.on_time_up_callback()
 
+    # def start(self, duration: int = None) -> None:
+    #     """
+    #     @brief Start or resume the countdown.
+    #     @param duration (Optional) Initial duration for the countdown.
+    #     """
+    #     if duration is not None:
+    #         self.duration = duration
+    #         self.remaining_time = duration
+    #     self.timer_active = True
+    #     self.paused = False
+    #     self.update_timer.resume()
+    #     self.update_progress_bar()  # Update progress bar immediately
     def start(self, duration: int = None) -> None:
         """
         @brief Start or resume the countdown.
@@ -96,6 +117,8 @@ class TimeDisplay(Static):
         if duration is not None:
             self.duration = duration
             self.remaining_time = duration
+            if self.digits:
+                self.digits.update(self.calculate_time(self.remaining_time))  # Update digits
         self.timer_active = True
         self.paused = False
         self.update_timer.resume()
@@ -115,8 +138,15 @@ class TimeDisplay(Static):
         """
         self.stop()
         self.remaining_time = self.duration
+        if self.digits:
+            self.digits.update(self.calculate_time(self.remaining_time))  # Update digits
         self.paused = False
         self.update_progress_bar()  # Reset progress bar
+
+    @staticmethod
+    def calculate_time(remaining_time: float) -> str:
+        minutes, seconds = divmod(remaining_time, 60)
+        return f"{int(minutes):02}:{int(seconds):02}"
 
     def watch_remaining_time(self, remaining_time: float) -> None:
         """
@@ -124,7 +154,10 @@ class TimeDisplay(Static):
         @param remaining_time Current remaining time in seconds.
         """
         minutes, seconds = divmod(remaining_time, 60)
-        self.update(f"{int(minutes):02}:{int(seconds):02}")
+        self.time_str = f"{int(minutes):02}:{int(seconds):02}"
+        if self.digits:
+            self.digits.update(self.time_str)  # Ensure Digits widget syncs with remaining_time
+        self.update()
 
     def update_progress_bar(self) -> None:
         """
@@ -140,6 +173,8 @@ class PomodoroClock(Static):
     @class PomodoroClock
     @brief A Pomodoro timer widget containing a TimeDisplay, PhaseDisplay, and controls.
     """
+    phase_display: PhaseDisplay
+    time_display: TimeDisplay
 
     def __init__(self, state: AppState) -> None:
         """
@@ -147,8 +182,6 @@ class PomodoroClock(Static):
         @param state Shared application state.
         """
         super().__init__()
-        self.phase_display = None
-        self.time_display = None
         self.state = state
 
     def on_mount(self) -> None:
@@ -168,7 +201,6 @@ class PomodoroClock(Static):
         """
         @brief Switch to the next phase when the timer completes.
         """
-        logger.info("Time is up! Switching to the next phase.")
         # Play the configured finish sound
         finish_sound = self.state.finish_sound
         play_sound_blocking(finish_sound)
@@ -195,6 +227,9 @@ class PomodoroClock(Static):
         self.time_display.reset()  # Ensure the timer is stopped
         self.time_display.duration = duration
         self.time_display.remaining_time = duration
+        if self.time_display.digits:
+            self.time_display.digits.update(self.time_display.calculate_time(duration))  # Update digits
+        self.time_display.update_progress_bar()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """
@@ -238,7 +273,7 @@ class PomodoroClock(Static):
         """
         with Vertical():
             with Center(id="clock_cluster"):
-                yield TimeDisplay(id="main_clock")
+                yield TimeDisplay(id="main_clock", state=self.state)
                 with Center():
                     yield PhaseDisplay(self.state, id="phase_show")  # Add PhaseDisplay widget
             with Center():

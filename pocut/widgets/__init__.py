@@ -1,2 +1,2 @@
-from .pomodoro_clock import PomodoroClock
-from .settings_tab import SettingsTab
+from .pomodoro_tab import *
+from .settings_tab import *

@@ -13,7 +13,7 @@ class AppState:
 
     def __init__(self, config_path: Path | str, debug_mode: bool):
         self.config_path = config_path
-        self.config = self.load_config()
+        self.config: dict = self.load_config()
         self.is_work_phase = True
         self.debug_mode: bool = debug_mode
 
@@ -38,6 +38,9 @@ class AppState:
                 },
                 "todo": {
                     "database_file_path": "pocut/db/todo.sqlite"
+                },
+                "misc": {
+                    "clock_type" : 1,
                 }
             }
             self.save_config(default_config)

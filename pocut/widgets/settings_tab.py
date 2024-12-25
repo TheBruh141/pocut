@@ -1,6 +1,8 @@
+from textual import on
 from textual.app import ComposeResult
-from textual.widgets import Button, Input, Label, Checkbox
-from textual.containers import Vertical, Container, Center
+from textual.reactive import Reactive
+from textual.widgets import Button, Input, Label, Checkbox, Footer, Header, Switch
+from textual.containers import Vertical, Container, Center, Horizontal
 from pocut.state import AppState
 from pocut.widgets.filemodal import FileSelectorModal
 
@@ -22,7 +24,6 @@ class SettingsTab(Container):
         current_sound_path = self.state.finish_sound
         work_duration = self.state.work_duration // 60  # Convert to minutes
         break_duration = self.state.break_duration // 60  # Convert to minutes
-
         with Vertical(id="settings_container"):
             # Sound Settings
             with Vertical(id="sound_settings") as v:
@@ -51,11 +52,27 @@ class SettingsTab(Container):
                 )
 
             # Dark Mode and Save Button
-            with Vertical(id="mode_selector"):
-                yield Checkbox("Enable Dark Mode", id="dark_mode_toggle")
+            with Vertical(id="misc") as v:
+                v.border_title = "Misc"
+                with Horizontal():
+                    clock_type = self.state.config["misc"]["clock_type"]
+                    yield Switch(value=clock_type, id="misc_clock_type_selector")
+                    yield Label(f"> Current type: {"big" if clock_type is True else "small"}",
+                                id="misc_clock_type_selector_indicator")
 
             with Center() as c:
                 yield Button("Save", id="save_settings_button", variant="success")
+
+            yield Footer()
+
+    @on(Switch.Changed, "#misc_clock_type_selector")
+    def change_clock_type(self):
+        self.state.config["misc"]["clock_type"] = not self.state.config["misc"]["clock_type"]
+        self.state.save_config(self.state.config)
+        self.notify(f"> Current type: {"big" if self.state.config["misc"]["clock_type"] is True else "small"}")
+
+        self.query_one("#misc_clock_type_selector_indicator", Label).update(
+            f"> Current type: {"big" if self.state.config["misc"]["clock_type"] is True else "small"}")
 
     async def on_button_pressed(self, event: Button.Pressed):
         """
@@ -91,7 +108,4 @@ class SettingsTab(Container):
         except ValueError:
             pass  # Handle invalid inputs gracefully
 
-        # Save other settings (e.g., dark mode, sound file path)
-        dark_mode_toggle = self.query_one("#dark_mode_toggle", Checkbox).value
-        self.state.config["dark_mode"] = dark_mode_toggle
         self.state.save_config(self.state.config)
