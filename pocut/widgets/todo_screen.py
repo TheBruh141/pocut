@@ -1,178 +1,451 @@
 # from datetime import datetime
-# from dataclasses import asdict
+# from typing import Optional
+#
+# from textual import events
 # from textual.app import ComposeResult
-# from textual.events import Key
-# from textual.screen import ModalScreen
-# from textual.widgets import DataTable, Input, Button, Static, Label, Select, Collapsible
-# from textual.containers import Vertical, Center, Horizontal
-# from textual.app import App
-#
+# from textual.containers import Container, Horizontal, Vertical, HorizontalScroll
+# from textual.events import Event
+# from textual.widget import Widget
+# from textual.widgets import (
+#     Static,
+#     Label,
+#     Digits,
+#     TextArea,
+#     Button,
+#     Input,
+#     Select,
+#     Checkbox,
+# )
+# import pocut.utils.task as t
 # from pocut import AppState
-# # from pocut.utils.taskmanager import Task,  # Assume Task and TaskManager are implemented as discussed
+# from pocut.utils import PomodoroDB, Task
 #
 #
-# class TaskCreatorWidget(Vertical):
-#     """
-#     Widget for creating a new task.
-#     """
-#     INTERVAL_OPTIONS = [
-#         "No Interval",
-#         "Daily",
-#         "Weekly",
-#         "Monthly",
-#         "Yearly",
-#     ]
-#
-#     def __init__(self, task_manager: TaskManager, **kwargs):
+# class TodoTask(Container, can_focus=True):
+#     # Note for the wizards that have decided to edit this.
+#     # we can't have a property named self.task because
+#     # textual already has a property named task.
+#     def __init__(self, task: t.Task, **kwargs):
 #         super().__init__(**kwargs)
-#         self.task_manager = task_manager
+#         self.info = task
+#
+#     def compose(self) -> ComposeResult:
+#         with Horizontal():
+#             with Vertical():
+#                 yield Label(self.info.title + "\n")
+#                 yield Label(self.info.text)
+#
+#             yield Label(
+#                 f"[{"Completed" if self.info.completed else "Not completed"}]",
+#                 id="status",
+#                 variant="success" if self.info.completed else "accent",
+#             )
+#             yield Digits(self.info.priority.__str__())
+#
+#
+# class TaskCreator(Static):
+#     """
+#     A widget for creating tasks with customizable attributes.
+#     """
+#
+#     def __init__(self, **kwargs):
+#         super().__init__(**kwargs)
 #
 #     def compose(self) -> ComposeResult:
 #         """
-#         Compose the layout for the widget.
+#         Compose the layout for the Task Creator widget.
 #         """
-#         with Vertical(id="task_form"):
-#             yield Label("Create a New Task", id="modal_title")
+#         with Container():
+#             yield Static("Task Title:")
+#             yield Input(placeholder="Enter task title", id="task-title")
 #
-#             yield Label("Task Title")
-#             yield Input(placeholder="Enter task title", id="task_title_input")
+#             yield Static("Task Description:")
+#             yield Input(placeholder="Enter task description", id="task-text")
 #
-#             yield Label("Task Description")
-#             yield Input(placeholder="Enter task description", id="task_description_input")
+#             yield Static("Priority:")
+#             yield Select(
+#                 options=[
+#                     ("Low", "1"),
+#                     ("Medium", "2"),
+#                     ("High", "3"),
+#                 ],
+#                 id="task-priority",
+#             )
 #
-#             with Collapsible(title="Advanced Settings"):
-#                 yield Label("Priority (1-5)")
-#                 yield Input(placeholder="1 (lowest) to 5 (highest)", id="priority_input")
+#             yield Static("Due Date (YYYY-MM-DD):")
+#             yield Input(placeholder="Enter due date", id="task-due-date")
 #
-#                 yield Label("Due Date (YYYY-MM-DD)")
-#                 yield Input(placeholder="Enter due date", id="due_date_input")
+#             with HorizontalScroll():
+#                 yield Checkbox(label="Completed", id="task-completed")
 #
-#                 yield Label("Interval")
-#                 yield Select(
-#                     [(interval, index) for index, interval in enumerate(self.INTERVAL_OPTIONS)],
-#                     id="interval_selector",
-#                 )
+#                 yield Checkbox(label="Daily", id="task-is-daily")
+#                 yield Checkbox(label="Weekly", id="task-is-weekly")
+#                 yield Checkbox(label="Monthly", id="task-is-monthly")
+#                 yield Checkbox(label="Yearly", id="task-is-yearly")
 #
-#             with Center():
-#                 yield Button("Create Task", id="create_task_button", variant="success")
+#             yield Static("Days of the Week:")
+#             yield Input(
+#                 placeholder="Comma-separated days, e.g., Mon, Tue",
+#                 id="task-days-of-week",
+#             )
 #
-#             yield Label("", id="status_label")
+#             yield Button(label="Create Task", id="create-task")
 #
-#     async def on_button_pressed(self, event: Button.Pressed):
+#     def get_task_data(self) -> t.Task:
 #         """
-#         Handle button presses.
+#         Collect data from the input fields and return it as a Task object.
+#
+#         Returns:
+#             t.Task: Task object with the collected data.
 #         """
-#         if event.button.id == "create_task_button":
-#             await self.create_task()
-#
-#     async def create_task(self):
-#         """
-#         Validate inputs and create a new task using the TaskManager.
-#         """
-#         # Fetch input values
-#         title = self.query_one("#task_title_input", Input).value.strip()
-#         description = self.query_one("#task_description_input", Input).value.strip()
-#         priority = self.query_one("#priority_input", Input).value.strip()
-#         due_date = self.query_one("#due_date_input", Input).value.strip()
-#         interval_index = self.query_one("#interval_selector", Select).value
-#
-#         # Input validation
-#         if not title:
-#             self.query_one("#status_label", Label).update("Task title is required.")
-#             return
-#
-#         if not description:
-#             self.query_one("#status_label", Label).update("Task description is required.")
-#             return
-#
+#         title: str = self.query_one("#task-title", Input).value or "Untitled Task"
+#         text: str = self.query_one("#task-text", Input).value or ""
+#         priority: int = int(self.query_one("#task-priority", Select).value or 1)
+#         due_date_input: Optional[str] = self.query_one("#task-due-date", Input).value
 #         try:
-#             priority = int(priority)
-#             if priority < 1 or priority > 5:
-#                 raise ValueError
+#             due_date: Optional[datetime] = (
+#                 datetime.strptime(due_date_input, "%Y-%m-%d")
+#                 if due_date_input
+#                 else None
+#             )
 #         except ValueError:
-#             self.query_one("#status_label", Label).update("Priority must be an integer between 1 and 5.")
-#             return
+#             self.notify(
+#                 "setting it to None",
+#                 title="Invalid due date",
+#                 severity="error",
+#             )
+#             due_date = None  # Invalid date format
+#         completed: bool = self.query_one("#task-completed", Checkbox).value
+#         is_daily: bool = self.query_one("#task-is-daily", Checkbox).value
+#         is_weekly: bool = self.query_one("#task-is-weekly", Checkbox).value
+#         is_monthly: bool = self.query_one("#task-is-monthly", Checkbox).value
+#         is_yearly: bool = self.query_one("#task-is-yearly", Checkbox).value
+#         days_of_week: list[str] = [
+#             day.strip()
+#             for day in (
+#                 self.query_one("#task-days-of-week", Input).value.split(",")
+#                 if self.query_one("#task-days-of-week", Input).value
+#                 else []
+#             )
+#         ]
 #
-#         if due_date:
-#             try:
-#                 datetime.strptime(due_date, "%Y-%m-%d")
-#             except ValueError:
-#                 self.query_one("#status_label", Label).update("Due date must be in YYYY-MM-DD format.")
-#                 return
-#
-#         # Determine interval settings
-#         interval_options = {
-#             1: {"is_daily": True},
-#             2: {"is_weekly": True},
-#             3: {"is_monthly": True},
-#             4: {"is_yearly": True},
-#         }
-#         interval_settings = interval_options.get(interval_index, {})
-#
-#         # Create task object
-#         task = Task(
+#         return t.Task(
 #             title=title,
-#             text=description,
+#             text=text,
 #             priority=priority,
-#             due_date=due_date if due_date else None,
-#             **interval_settings
+#             due_date=due_date,
+#             completed=completed,
+#             is_daily=is_daily,
+#             is_weekly=is_weekly,
+#             is_monthly=is_monthly,
+#             is_yearly=is_yearly,
+#             days_of_week=days_of_week,
+#             created_at=datetime.now(),
+#             updated_at=datetime.now(),
 #         )
 #
-#         # Save task to the database
-#         try:
-#             self.task_manager.add_task(task)
-#             self.query_one("#status_label", Label).update("Task created successfully!")
-#         except Exception as e:
-#             self.query_one("#status_label", Label).update(f"Error creating task: {e}")
-#
-#
-# class TaskCreatorModal(ModalScreen):
-#     """
-#     Modal screen for task creation.
-#     """
-#
-#     def __init__(self, task_manager: TaskManager, **kwargs):
-#         super().__init__(**kwargs)
-#         self.task_manager = task_manager
-#
-#     def compose(self) -> ComposeResult:
+#     def on_button_pressed(self, event: Button.Pressed) -> None:
 #         """
-#         Compose the layout for the modal screen.
+#         Handle the button press event to create a task.
+#
+#         Args:
+#             event (Button.Pressed): The button press event.
 #         """
-#         yield TaskCreatorWidget(self.task_manager)
-#
-#     def on_key(self, event: Key):
-#         if event.key == "escape":
-#             self.dismiss()
+#         if event.button.id == "create-task":
+#             task_data = self.get_task_data()
+#             self.post_message(t.TaskData(task_data))
 #
 #
-# class TodoTab(Vertical):
-#     """
-#     Tab for managing tasks.
-#     """
+# class TodoTab(Static):
 #
-#     def __init__(self, state: AppState, **kwargs):
-#         super().__init__(**kwargs)
+#     db: PomodoroDB
+#
+#     def __init__(self, state: AppState):
+#         super().__init__()
 #         self.state = state
-#         self.task_manager = TaskManager(state.database_path)
+#         self.db = PomodoroDB()
+#         self.task_widgets = []
+#         self.focused_index = 0
 #
 #     def compose(self) -> ComposeResult:
-#         """
-#         Compose the To-Do tab layout.
-#         """
-#         with Vertical():
-#             yield Center(Label("To-Do List"))
+#         yield TaskCreator()
 #
-#             with Vertical(id="task_list"):
-#                 tasks = self.task_manager.get_all_tasks()
-#                 for task in tasks:
-#                     yield Static(f"{task.title}: {task.text}")
+#         # for debugging
+#         # yield Label("random tasks\n\n")
 #
-#             yield Button("Create New Task", id="open_task_creator_button", variant="primary")
+#         # for task in t.create_random_tasks(10):
+#         #     task_widget = TodoTask(task)
+#         #     self.task_widgets.append(task_widget)
+#         #     yield task_widget
+#         # for task in self.db.list_tasks():
+#         #     task_widget = TodoTask(task)
+#         #     self.task_widgets.append(task_widget)
+#         #     yield task_widget
 #
-#     async def on_button_pressed(self, event: Button.Pressed):
-#         """
-#         Handle button presses.
-#         """
-#         if event.button.id == "open_task_creator_button":
-#             self.app.push_screen(TaskCreatorModal(self.task_manager))
+#     def _on_key(self, event: events.Key) -> None:
+#         if not self.task_widgets:
+#             return
+#
+#         if event.key == "down":
+#             # Move focus to the next task
+#             self.focused_index = (self.focused_index + 1) % len(self.task_widgets)
+#             self.task_widgets[self.focused_index].focus()
+#
+#         elif event.key == "up":
+#             # Move focus to the previous task
+#             self.focused_index = (self.focused_index - 1) % len(self.task_widgets)
+#             self.task_widgets[self.focused_index].focus()
+
+
+from datetime import datetime
+from typing import Optional
+
+from textual import events
+from textual.app import ComposeResult
+from textual.containers import Container, Horizontal, Vertical, HorizontalScroll, Center
+from textual.widgets import (
+    Static,
+    Label,
+    Digits,
+    Button,
+    Input,
+    Select,
+    Checkbox,
+)
+import pocut.utils.task as t
+from pocut import AppState
+from pocut.utils import PomodoroDB
+from textual.screen import ModalScreen
+
+
+class TodoTask(Container, can_focus=True):
+    # Note for the wizards that have decided to edit this.
+    # we can't have a property named self.task because
+    # textual already has a property named task.
+    def __init__(self, task: t.Task, **kwargs):
+        super().__init__(**kwargs)
+        self.info = task
+
+    def compose(self) -> ComposeResult:
+        with Horizontal():
+            with Vertical():
+                yield Label(self.info.title + "\n")
+                yield Label(self.info.text)
+
+            yield Label(
+                f"[{'Completed' if self.info.completed else 'Not completed'}]",
+                id="status",
+                variant="success" if self.info.completed else "accent",
+            )
+            yield Digits(self.info.priority.__str__())
+
+
+class TaskCreatorModal(ModalScreen):
+    """
+    A modal screen for creating tasks with customizable attributes.
+    """
+
+    def compose(self) -> ComposeResult:
+        """
+        Compose the layout for the Task Creator modal screen.
+        """
+        with Container():
+
+            yield Static("Task Title:")
+            yield Input(placeholder="Enter task title", id="task-title")
+
+            yield Static("Task Description:")
+            yield Input(placeholder="Enter task description", id="task-text")
+
+            yield Static("Priority:")
+            yield Select(
+                options=[
+                    ("Low", "1"),
+                    ("Medium", "2"),
+                    ("High", "3"),
+                ],
+                id="task-priority",
+                allow_blank=False,
+                value="1",
+            )
+
+            yield Static("Due Date (YYYY-MM-DD):")
+            yield Input(placeholder="Enter due date", id="task-due-date")
+
+            yield Static("Days of the Week:")
+            yield Input(
+                placeholder="Comma-separated days, e.g., Mon, Tue",
+                id="task-days-of-week",
+            )
+
+            with HorizontalScroll():
+                yield Checkbox(
+                    label="Completed",
+                    id="task-completed",
+                    tooltip="Mark the task as completed",
+                )
+
+                yield Checkbox(
+                    label="Daily",
+                    id="task-is-daily",
+                    tooltip="Set the task as a daily recurring task",
+                )
+                yield Checkbox(
+                    label="Weekly",
+                    id="task-is-weekly",
+                    tooltip="Set the task as a weekly recurring task",
+                )
+                yield Checkbox(
+                    label="Monthly",
+                    id="task-is-monthly",
+                    tooltip="Set the task as a monthly recurring task",
+                )
+                yield Checkbox(
+                    label="Yearly",
+                    id="task-is-yearly",
+                    tooltip="Set the task as a yearly recurring task",
+                )
+
+            yield Center(Button(label="Create Task", id="create-task"))
+
+    def get_task_data(self) -> t.Task:
+        """
+        Collect data from the input fields and return it as a Task object.
+
+        Returns:
+            t.Task: Task object with the collected data.
+        """
+        title: str = self.query_one("#task-title", Input).value.strip()
+        text: str = self.query_one("#task-text", Input).value.strip()
+        priority_input: Optional[str] = self.query_one("#task-priority", Select).value
+        due_date_input: Optional[str] = self.query_one(
+            "#task-due-date", Input
+        ).value.strip()
+        days_of_week_input: Optional[str] = self.query_one(
+            "#task-days-of-week", Input
+        ).value.strip()
+
+        # Sanitize and validate input
+        title = title or "Empty Task"
+        text = (
+            text
+            or "This task was created automatically because you didn't provide details!"
+        )
+
+        try:
+            priority: int = int(priority_input) if priority_input else 1
+        except:
+            self.notify(
+                "Priority must be a number between 1 and 3.",
+                title="Invalid Priority",
+                severity="error",
+            )
+            priority = 1
+
+        try:
+            due_date: Optional[datetime] = (
+                datetime.strptime(due_date_input, "%Y-%m-%d")
+                if due_date_input
+                else None
+            )
+        except ValueError:
+            self.notify(
+                "Invalid date format. Please use YYYY-MM-DD.",
+                title="Invalid Due Date",
+                severity="error",
+            )
+            due_date = None
+
+        days_of_week: list[str] = [
+            day.strip().capitalize()
+            for day in days_of_week_input.split(",")
+            if days_of_week_input
+        ]
+
+        return t.Task(
+            title=title,
+            text=text,
+            priority=priority,
+            due_date=due_date,
+            completed=self.query_one("#task-completed", Checkbox).value,
+            is_daily=self.query_one("#task-is-daily", Checkbox).value,
+            is_weekly=self.query_one("#task-is-weekly", Checkbox).value,
+            is_monthly=self.query_one("#task-is-monthly", Checkbox).value,
+            is_yearly=self.query_one("#task-is-yearly", Checkbox).value,
+            days_of_week=days_of_week,
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        )
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        """
+        Handle the button press event to create a task.
+
+        Args:
+            event (Button.Pressed): The button press event.
+        """
+        if event.button.id == "create-task":
+            task_data = self.get_task_data()
+            self.post_message(t.TaskData(task_data))
+            self.dismiss()
+
+    def on_key(self, event: events.Key) -> None:
+        """
+        Handle the escape key to close the modal screen.
+
+        Args:
+            event (events.Key): The key event.
+        """
+        if event.key == "escape":
+            self.dismiss()
+
+
+class TodoTab(Static):
+
+    db: PomodoroDB
+
+    def __init__(self, state: AppState):
+        super().__init__()
+        self.state = state
+        self.db = PomodoroDB()
+        self.task_widgets = []
+        self.focused_index = 0
+
+    def compose(self) -> ComposeResult:
+        yield Button(label="Add Task", id="add-task")
+
+        # for debugging
+        # yield Label("random tasks\n\n")
+
+        # for task in t.create_random_tasks(10):
+        #     task_widget = TodoTask(task)
+        #     self.task_widgets.append(task_widget)
+        #     yield task_widget
+        # for task in self.db.list_tasks():
+        #     task_widget = TodoTask(task)
+        #     self.task_widgets.append(task_widget)
+        #     yield task_widget
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        """
+        Handle button presses in the TodoTab.
+
+        Args:
+            event (Button.Pressed): The button press event.
+        """
+        if event.button.id == "add-task":
+            self.app.push_screen(TaskCreatorModal())
+
+    def _on_key(self, event: events.Key) -> None:
+        if not self.task_widgets:
+            return
+
+        if event.key == "down":
+            # Move focus to the next task
+            self.focused_index = (self.focused_index + 1) % len(self.task_widgets)
+            self.task_widgets[self.focused_index].focus()
+
+        elif event.key == "up":
+            # Move focus to the previous task
+            self.focused_index = (self.focused_index - 1) % len(self.task_widgets)
+            self.task_widgets[self.focused_index].focus()

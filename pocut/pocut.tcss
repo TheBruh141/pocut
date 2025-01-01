@@ -4,13 +4,30 @@ Screen {
 Tab {
     overflow: auto;
 }
+TodoTask {
+        layer: two;
+        background: black 10%;
+        padding: 0 2 0 3;
+        margin: 1;
+        width: 100%;
 
-#todo_add_modal {
-    #outer_container {
-        border: gray;
-        border-title-color: white;
-    }
+        #status {
+            height: 1;
+            layer: one;
+
+            dock: right;
+            margin: 0 5 0 0 ;
+        }
+        Digits {
+        width: 4;
+        }
 }
+
+TodoTask:focus {
+    background-tint: $foreground 50%;
+    border: round;
+    padding: -1;
+     }
 
 TimeDisplay {
     content-align: center middle;
@@ -45,7 +62,7 @@ $phase_show_border_color: white;
     #misc {
         border: gray;
         border-title-color: white;
-        height: 5w;
+        height: 5;
     }
 }
 
@@ -94,7 +111,7 @@ $phase_show_border_color: white;
 #clock_cluster {
     outline: round white 40%;
     padding: 2 8;
-    max-height: 70%;
+    max-height: 80%;
     align: center middle !important;
 
     #timer_digits {
@@ -104,6 +121,14 @@ $phase_show_border_color: white;
             */
             width: auto;
         }
+
+    WorldClock {
+        color: white 33%;
+        text-align: center;
+        padding-top: 1;
+        margin: 0;
+    }
+
     #main_clock {
         max-height: 9;
         align: center middle;
@@ -127,7 +152,7 @@ $phase_show_border_color: white;
     #time_left_progress_bar{
         width: 1fr;
         align: center bottom;
-        offset: 0 2;
+        offset: 0 1;
     }
 
 }

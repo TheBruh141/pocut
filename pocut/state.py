@@ -1,6 +1,7 @@
 from pathlib import Path
 import toml
 from loguru import logger
+from pre_commit.clientlib import load_config
 
 
 class AppState:
@@ -40,11 +41,15 @@ class AppState:
                     "database_file_path": "pocut/db/todo.sqlite"
                 },
                 "misc": {
-                    "clock_type" : 1,
+                    "clock_type": 1,
                 }
             }
             self.save_config(default_config)
             return default_config
+
+    @property
+    def poll_config(self):
+        return AppState(self.config_path, self.debug_mode)
 
     def save_config(self, config: dict) -> None:
         """
@@ -180,3 +185,7 @@ class AppState:
     def database_path(self, value: str):
         self.config["todo"]["database_file_path"] = value
         self.save_config(self.config)
+
+    @property
+    def clock_type(self):
+        return self.config["misc"]["clock_type"]

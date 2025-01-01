@@ -3,4 +3,5 @@ Utility functions for the pocut application.
 """
 
 from .audio import *
-from .taskmanager import *
+from .taskmanager import PomodoroDB
+from .task import Task, Session

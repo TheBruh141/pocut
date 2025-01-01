@@ -1,8 +1,8 @@
-from textual import on
+from textual import on, events
 from textual.app import ComposeResult
-from textual.reactive import Reactive
-from textual.widgets import Button, Input, Label, Checkbox, Footer, Header, Switch
 from textual.containers import Vertical, Container, Center, Horizontal
+from textual.widgets import Button, Input, Label, Footer, Switch, Digits
+
 from pocut.state import AppState
 from pocut.widgets.filemodal import FileSelectorModal
 
@@ -57,8 +57,12 @@ class SettingsTab(Container):
                 with Horizontal():
                     clock_type = self.state.config["misc"]["clock_type"]
                     yield Switch(value=clock_type, id="misc_clock_type_selector")
-                    yield Label(f"> Current type: {"big" if clock_type is True else "small"}",
-                                id="misc_clock_type_selector_indicator")
+                    with Vertical():
+                        yield Label("Clock Type")
+                        yield Label(
+                            f"> Current type: {"big" if clock_type is True else "small"}",
+                            id="misc_clock_type_selector_indicator",
+                        )
 
             with Center() as c:
                 yield Button("Save", id="save_settings_button", variant="success")
@@ -67,12 +71,20 @@ class SettingsTab(Container):
 
     @on(Switch.Changed, "#misc_clock_type_selector")
     def change_clock_type(self):
-        self.state.config["misc"]["clock_type"] = not self.state.config["misc"]["clock_type"]
+        self.state.config["misc"]["clock_type"] = not self.state.config["misc"][
+            "clock_type"
+        ]
         self.state.save_config(self.state.config)
-        self.notify(f"> Current type: {"big" if self.state.config["misc"]["clock_type"] is True else "small"}")
+        self.notify(
+            f"> Current type:"
+            f" {"big" if self.state.config["misc"]["clock_type"] is True else "small"}\n"
+            f"this action requires restarting to take effects",
+            severity="information",
+        )
 
         self.query_one("#misc_clock_type_selector_indicator", Label).update(
-            f"> Current type: {"big" if self.state.config["misc"]["clock_type"] is True else "small"}")
+            f"> Current type: {"big" if self.state.config["misc"]["clock_type"] is True else "small"}"
+        )
 
     async def on_button_pressed(self, event: Button.Pressed):
         """
