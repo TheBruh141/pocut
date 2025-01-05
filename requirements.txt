@@ -1,4 +1,9 @@
 pygame~=2.6.1
 toml~=0.10.2
-textual~=0.89.1
+textual~=1.0.0
 pytest~=8.3.4
+rich~=13.9.4
+Faker~=33.1.0
+pytz~=2024.2
+loguru~=0.7.3
+pre_commit~=4.0.1

@@ -4,30 +4,63 @@ Screen {
 Tab {
     overflow: auto;
 }
+#todo-tab-button-cluster {
+    height: 1;
+    #add-task {
+    margin-left: 4;
+    }
+    #edit-task {
+    margin-right: 5;
+    color: yellow;
+    }
+    margin: 0;
+}
+
 TodoTask {
-        layer: two;
+        height: 4;
         background: black 10%;
         padding: 0 2 0 3;
         margin: 1;
         width: 100%;
 
-        #status {
+        #task-status {
+            align: right top;
             height: 1;
-            layer: one;
-
-            dock: right;
-            margin: 0 5 0 0 ;
+            layer: two;
+            margin: 1 0 0 0 ;
         }
-        Digits {
-        width: 4;
+        SmallButton{
+            width: auto;
+            min-width: 3;
+            padding: 0 1;
+            margin-left: 3;
+        }
+
+        #text {
+            text-style: italic;
+            color: gray 90%;
         }
 }
+.completed {
+}
 
-TodoTask:focus {
+.not-completed {
+}
+TodoTask:focus-within {
     background-tint: $foreground 50%;
-    border: round;
-    padding: -1;
-     }
+    border: round gray;
+    height: 6;
+    #title {
+        text-style: bold;
+        color: $primary 90%;
+    }
+    #text {
+    text-style: italic;
+    }
+    SmallButton {
+    background: black 10% ;
+    }
+}
 
 TimeDisplay {
     content-align: center middle;
@@ -36,6 +69,14 @@ TimeDisplay {
 }
 
 $phase_show_border_color: white;
+
+TaskCreatorModal {
+    layer: 2;
+    padding: 3;
+    align: center middle;
+    background: $surface 0%;
+    border: thick $background 0%;
+}
 
 #settings_container {
     #sound_settings {
@@ -157,46 +198,11 @@ $phase_show_border_color: white;
 
 }
 
-
-Button {
-    width: 16;
-}
-
-#start {
-    align: center top;
-}
-
-#stop {
-    display: none;
-}
-
-#reset {
+#button_cluster{
 
 }
 
-.started {
-    text-style: bold;
-    /* background: $success; */
-    color: $text;
-}
-
-.started TimeDisplay {
-    text-opacity: 100%;
-}
-
-.started #start {
-    display: none
-}
-
-.started #stop {
-    align: center top;
-    display: block
-}
-
-.started #reset {
-    visibility: hidden
-}
-
-.column {
-    width: 1fr;
+VerticalScroll {
+background: red;
+border: round;
 }

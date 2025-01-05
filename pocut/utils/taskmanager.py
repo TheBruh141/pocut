@@ -4,6 +4,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 from dataclasses import dataclass, field
+
+import textual
+
 import pocut.utils.task as task
 
 Task = task.Task
@@ -42,6 +45,7 @@ class PomodoroDB:
                 title TEXT NOT NULL,
                 text TEXT,
                 completed BOOLEAN NOT NULL DEFAULT 0,
+                ongoing BOOLEAN NOT NULL DEFAULT 0,
                 priority INTEGER NOT NULL DEFAULT 1,
                 category_id INTEGER,
                 attempts INTEGER NOT NULL DEFAULT 0,
@@ -338,3 +342,55 @@ class PomodoroDB:
                 f"UPDATE sessions SET {fields}, updated_at = ? WHERE id = ?",
                 (*values, datetime.now().isoformat(), session.id),
             )
+
+
+# Handle task creation
+def handle_data_create_headless(data: task.Task) -> None:
+    """
+    Handles the creation of a new task by inserting it into the database.
+
+    Args:
+        data (t.TaskData): Event data containing the task to create.
+    """
+    db = PomodoroDB()
+
+    try:
+        task_id = db.add_task(data)
+        print(f"Task created with ID: {task_id}")
+    except Exception as e:
+        print(f"Error creating task: {e}")
+
+
+# Handle task updates
+def handle_data_update_headless(data: task.Task) -> None:
+    """
+    Handles updating an existing task in the database.
+
+    Args:
+        data (t.TaskData): Event data containing the task to update.
+    """
+    db = PomodoroDB()
+
+    try:
+        data.updated_at = datetime.now()
+        db.update_task(data)
+        # print(f"Task with ID {data.task.id} updated.")
+        textual.log(f"Task updated with ID: {data.id}")
+    except Exception as e:
+        textual.log(f"Error updating task: {e}", error=True)
+
+
+# Handle task deletion
+def handle_data_delete_headless(data: task.Task) -> None:
+    """
+    Handles deleting a task from the database.
+
+    Args:
+        data (t.TaskData): Event data containing the task to delete.
+    """
+    db = PomodoroDB()
+    try:
+        db.delete_task(data.id)
+        textual.log(f"Task with ID {data.id} deleted.")
+    except Exception as e:
+        textual.log(f"Error deleting task: {e}", error=True)

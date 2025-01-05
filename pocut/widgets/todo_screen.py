@@ -200,9 +200,20 @@
 from datetime import datetime
 from typing import Optional
 
-from textual import events
+import textual.widget
+from textual import events, on, work
 from textual.app import ComposeResult
-from textual.containers import Container, Horizontal, Vertical, HorizontalScroll, Center
+from textual.containers import (
+    Container,
+    Horizontal,
+    Vertical,
+    HorizontalScroll,
+    Center,
+    Right,
+    ScrollableContainer,
+)
+from textual.events import DescendantBlur, Focus, Blur, DescendantFocus
+from textual.reactive import await_watcher
 from textual.widgets import (
     Static,
     Label,
@@ -211,36 +222,68 @@ from textual.widgets import (
     Input,
     Select,
     Checkbox,
+    Footer,
 )
 import pocut.utils.task as t
 from pocut import AppState
 from pocut.utils import PomodoroDB
-from textual.screen import ModalScreen
+from textual.screen import ModalScreen, Screen
+
+from pocut.utils.taskmanager import handle_data_create_headless
+from pocut.widgets.common.custom_button import SmallButton
 
 
 class TodoTask(Container, can_focus=True):
     # Note for the wizards that have decided to edit this.
     # we can't have a property named self.task because
     # textual already has a property named task.
+
     def __init__(self, task: t.Task, **kwargs):
         super().__init__(**kwargs)
         self.info = task
 
     def compose(self) -> ComposeResult:
-        with Horizontal():
+        with Horizontal(id="task-cluster"):
             with Vertical():
-                yield Label(self.info.title + "\n")
-                yield Label(self.info.text)
+                yield Label(self.info.title + "\n", id="title")
+                yield Label(self.info.text, id="text")
 
-            yield Label(
-                f"[{'Completed' if self.info.completed else 'Not completed'}]",
-                id="status",
-                variant="success" if self.info.completed else "accent",
-            )
-            yield Digits(self.info.priority.__str__())
+            with Horizontal(id="task-status"):
+                yield SmallButton("edit", classes="status")
+                yield SmallButton(
+                    "\[x]" if self.info.completed == True else "[ ]",
+                    id="complete-button",
+                    # variant="success" if self.info.completed else "accent",
+                    classes="completed" if self.info.completed else "not-completed",
+                )
+            # yield Digits(self.info.priority.__str__())
+
+    @on(events.DescendantFocus)
+    async def handle_complete_button_focus(self, event: DescendantFocus):
+
+        if event.widget.id != "complete-button":
+            self.notify(event.widget.__str__())
+            return
+        btn = self.query_one("#complete-button", Button)
+        btn.label = "\[x]"
+
+    @on(events.DescendantBlur)
+    def handle_complete_button_blur(self, event: DescendantBlur):
+        if event.widget.id != "complete-button":
+            return
+        btn = self.query_one("#complete-button", Button)
+        btn.label = "[ ]"
+
+    @on(events.Key)
+    def handle_interactions(self, e: events.Key) -> None:
+        # if e.key == "l":
+        #     # this might seem weird but this is a actually a breakpoint. so if something goes
+        #     # wrong I'll just be using this
+        #     print("kaboom")
+        pass
 
 
-class TaskCreatorModal(ModalScreen):
+class TaskCreatorModal(ModalScreen[bool]):
     """
     A modal screen for creating tasks with customizable attributes.
     """
@@ -250,7 +293,7 @@ class TaskCreatorModal(ModalScreen):
         Compose the layout for the Task Creator modal screen.
         """
         with Container():
-
+            yield Label(f"parent: {self.parent}")
             yield Static("Task Title:")
             yield Input(placeholder="Enter task title", id="task-title")
 
@@ -306,7 +349,7 @@ class TaskCreatorModal(ModalScreen):
                     tooltip="Set the task as a yearly recurring task",
                 )
 
-            yield Center(Button(label="Create Task", id="create-task"))
+            yield Center(SmallButton(label="Create Task", id="create-task"))
 
     def get_task_data(self) -> t.Task:
         """
@@ -377,6 +420,9 @@ class TaskCreatorModal(ModalScreen):
             updated_at=datetime.now(),
         )
 
+    def on_mount(self):
+        self.notify("mounted")
+
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """
         Handle the button press event to create a task.
@@ -386,8 +432,9 @@ class TaskCreatorModal(ModalScreen):
         """
         if event.button.id == "create-task":
             task_data = self.get_task_data()
-            self.post_message(t.TaskData(task_data))
-            self.dismiss()
+
+            handle_data_create_headless(task_data)
+            self.dismiss(True)
 
     def on_key(self, event: events.Key) -> None:
         """
@@ -397,11 +444,17 @@ class TaskCreatorModal(ModalScreen):
             event (events.Key): The key event.
         """
         if event.key == "escape":
-            self.dismiss()
+            self.dismiss(False)
 
 
-class TodoTab(Static):
-
+class TodoTab(Container):
+    _inherit_bindings = False
+    _merged_bindings = False
+    BINDINGS = [
+        ("a", "create_task", "create task"),
+        ("d", "delete_task", "delete task"),
+        ("e", "edit_task", "edit task"),
+    ]
     db: PomodoroDB
 
     def __init__(self, state: AppState):
@@ -411,22 +464,30 @@ class TodoTab(Static):
         self.task_widgets = []
         self.focused_index = 0
 
+    def on_mount(self):
+
+        for w in self.children:
+            w.border_title = f"{w.id if w.id else "NO FUCKGIN NAME"}"
+
+        self.recompose()
+
     def compose(self) -> ComposeResult:
-        yield Button(label="Add Task", id="add-task")
+        with Horizontal(id="todo-tab-button-cluster"):
+            yield SmallButton(label="Add Task", id="add-task")
 
-        # for debugging
-        # yield Label("random tasks\n\n")
+            with Right():
+                yield SmallButton(label="Edit", id="edit-task")
 
-        # for task in t.create_random_tasks(10):
-        #     task_widget = TodoTask(task)
-        #     self.task_widgets.append(task_widget)
-        #     yield task_widget
-        # for task in self.db.list_tasks():
-        #     task_widget = TodoTask(task)
-        #     self.task_widgets.append(task_widget)
-        #     yield task_widget
+        with ScrollableContainer(can_focus=False, can_focus_children=True):
+            for task in self.db.list_tasks():
+                task_widget = TodoTask(task)
+                self.task_widgets.append(task_widget)
+                yield task_widget
 
-    def on_button_pressed(self, event: Button.Pressed) -> None:
+        yield Footer()
+
+    @work
+    async def on_button_pressed(self, event: Button.Pressed) -> None:
         """
         Handle button presses in the TodoTab.
 
@@ -434,18 +495,59 @@ class TodoTab(Static):
             event (Button.Pressed): The button press event.
         """
         if event.button.id == "add-task":
-            self.app.push_screen(TaskCreatorModal())
+            await self.app.push_screen(TaskCreatorModal(), wait_for_dismiss=True)
+            self.refresh(repaint=True, recompose=True, layout=True)
 
-    def _on_key(self, event: events.Key) -> None:
-        if not self.task_widgets:
-            return
+    # Handle task creation
+    @on(t.TaskData.Create)
+    def handle_data_create(self, data: t.TaskData) -> None:
+        """
+        Handles the creation of a new task by inserting it into the database.
 
-        if event.key == "down":
-            # Move focus to the next task
-            self.focused_index = (self.focused_index + 1) % len(self.task_widgets)
-            self.task_widgets[self.focused_index].focus()
+        Args:
+            data (t.TaskData): Event data containing the task to create.
+        """
+        db = PomodoroDB()
+        self.notify("Creating new task...")
 
-        elif event.key == "up":
-            # Move focus to the previous task
-            self.focused_index = (self.focused_index - 1) % len(self.task_widgets)
-            self.task_widgets[self.focused_index].focus()
+        try:
+            task_id = db.add_task(data.task)
+            print(f"Task created with ID: {task_id}")
+        except Exception as e:
+            print(f"Error creating task: {e}")
+
+    # Handle task updates
+    @on(t.TaskData.Update)
+    def handle_data_update(self, data: t.TaskData) -> None:
+        """
+        Handles updating an existing task in the database.
+
+        Args:
+            data (t.TaskData): Event data containing the task to update.
+        """
+        db = PomodoroDB()
+        self.notify("Updating task...")
+
+        try:
+            data.task.updated_at = datetime.now()
+            db.update_task(data.task)
+            print(f"Task with ID {data.task.id} updated.")
+        except Exception as e:
+            print(f"Error updating task: {e}")
+
+    # Handle task deletion
+    @on(t.TaskData.Delete)
+    def handle_data_delete(self, data: t.TaskData) -> None:
+        """
+        Handles deleting a task from the database.
+
+        Args:
+            data (t.TaskData): Event data containing the task to delete.
+        """
+        db = PomodoroDB()
+        self.notify("Deleting task...")
+        try:
+            db.delete_task(data.task.id)
+            print(f"Task with ID {data.task.id} deleted.")
+        except Exception as e:
+            print(f"Error deleting task: {e}")

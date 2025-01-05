@@ -19,12 +19,6 @@ class PocutApp(App):
     """
 
     CSS_PATH = "pocut.tcss"
-    BINDINGS = [
-        ("s", "start_timer", "Start/Stop the timer"),
-        ("r", "reset_timer", "Reset the timer"),
-        ("c", "toggle_phase", "Change phase"),
-    ]
-
     # BINDINGS = [
     #     ("a", "previous_tab", "Switch to the previous tab"),
     #     ("d", "next_tab", "Switch to the next tab"),
@@ -52,7 +46,7 @@ class PocutApp(App):
             self._tabs = tc
             with TabPane("Pomodoro", id="pomodoro"):
                 yield PomodoroClock(self.state.config_path, self.state.debug_mode)
-            with TabPane("Todos"):
+            with TabPane("Todos", id="todo_tab"):
                 yield TodoTab(self.state)
 
             with TabPane("Settings", id="settings"):
@@ -68,30 +62,3 @@ class PocutApp(App):
         """
         self.state.work_duration = work
         self.state.break_duration = break_
-
-    def action_start_timer(self):
-        button = self.query_one("#start_stop", Button)
-        button.post_message(Button.Pressed(button))
-
-    def action_reset_timer(self):
-        button = self.query_one("#reset", Button)
-        button.post_message(Button.Pressed(button))
-
-    def action_toggle_phase(self):
-        button = self.query_one("#toggle_phase", Button)
-        button.post_message(Button.Pressed(button))
-
-    # def action_next_tab(self) -> None:
-    #     """
-    #     Switch to the next tab in the TabbedContent.
-    #     """
-    #
-    #     tabs = self.query_one(Tabs)
-    #     tabs.action_next_tab()
-    #
-    # def action_previous_tab(self) -> None:
-    #     """
-    #     Switch to the previous tab in the TabbedContent.
-    #     """
-    #     self.notify("Previous Tab")
-    #     self._tabs.action_previous_tab()

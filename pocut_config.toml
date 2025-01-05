@@ -2,7 +2,7 @@ dark_mode = false
 
 [durations]
 work_duration = 3000
-break_duration = 600
+break_duration = 300
 
 [audio]
 finish_sound = "assets/sounds/bad-to-the-bone.mp3"

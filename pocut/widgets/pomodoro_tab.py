@@ -13,6 +13,7 @@ from textual.widgets import Static, Button, Footer, ProgressBar, Label, Digits
 from pocut.state import AppState
 
 from pocut.utils.audio import initialize_audio, set_volume, play_sound_blocking
+from pocut.widgets.common.custom_button import SmallButton
 
 
 class WorldClock(Static):
@@ -247,6 +248,11 @@ class PomodoroClock(Static):
     @brief A Pomodoro timer widget containing a TimeDisplay, PhaseDisplay, and controls.
     """
 
+    BINDINGS = [
+        ("s", "start_timer", "Start/Stop the timer"),
+        ("r", "reset_timer", "Reset the timer"),
+        ("c", "toggle_phase", "Change phase"),
+    ]
     phase_display: PhaseDisplay
     time_display: TimeDisplay
 
@@ -357,8 +363,20 @@ class PomodoroClock(Static):
                     yield PhaseDisplay(
                         self.state, id="phase_show"
                     )  # Add PhaseDisplay widget
-            with Center():
+            with Center(id="button_cluster"):
                 yield Button("Start", id="start_stop", variant="success")
                 yield Button("Reset", id="reset")
                 yield Button("Toggle Phase", id="toggle_phase", variant="primary")
         yield Footer()
+
+    def action_start_timer(self):
+        button = self.query_one("#start_stop", Button)
+        button.post_message(Button.Pressed(button))
+
+    def action_reset_timer(self):
+        button = self.query_one("#reset", Button)
+        button.post_message(Button.Pressed(button))
+
+    def action_toggle_phase(self):
+        button = self.query_one("#toggle_phase", Button)
+        button.post_message(Button.Pressed(button))

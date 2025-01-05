@@ -1,10 +1,10 @@
-from textual import on, events
+from textual import on
 from textual.app import ComposeResult
 from textual.containers import Vertical, Container, Center, Horizontal
-from textual.widgets import Button, Input, Label, Footer, Switch, Digits
+from textual.widgets import Button, Input, Label, Footer, Switch
 
 from pocut.state import AppState
-from pocut.widgets.filemodal import FileSelectorModal
+from pocut.widgets.common.filemodal import FileSelectorModal
 
 
 class SettingsTab(Container):
