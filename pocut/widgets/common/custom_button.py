@@ -1,4 +1,4 @@
-from textual.widgets import Button
+from textual.widgets import Button, Switch
 
 
 class SmallButton(Button):

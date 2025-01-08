@@ -1,5 +1,5 @@
 """
-_random_generators.py
+__random_generators.py
 
 Synopsis:
     This file is for automatic testing of randomly generated tasks and sessions.
@@ -13,10 +13,13 @@ Author:
 
 import random
 from datetime import timedelta
-from task import *
+from pocut.utils.task import *
+import faker
+
+fake = faker.Faker()
 
 
-def create_random_tasks(num_tasks: int) -> list[Task]:
+def create_random_tasks(num_tasks: int, test_time: bool = False) -> list[Task]:
     """
     Generate a list of realistic tasks using Faker for more lifelike data.
 
@@ -40,7 +43,7 @@ def create_random_tasks(num_tasks: int) -> list[Task]:
             priority=random.choice(priorities),
             category_id=random.choice(categories),
             attempts=random.randint(0, 10),
-            time_spent=random.randint(0, 240),
+            time_spent=random.randint(0, 240) if test_time == False else 0,
             due_date=(
                 fake.date_time_between(start_date="now", end_date="+30d")
                 if random.choice([True, False])
@@ -70,7 +73,8 @@ def create_random_tasks(num_tasks: int) -> list[Task]:
 
 def create_random_sessions(num_sessions: int, task_pool: list[Task]) -> list[Session]:
     """
-    Generate a list of realistic sessions using a given pool of tasks.
+    Generate a list of realistic sessions using a given pool of tasks, with the option
+    to set time spent to zero for testing purposes.
 
     Args:
         num_sessions (int): Number of random sessions to generate.
@@ -88,6 +92,8 @@ def create_random_sessions(num_sessions: int, task_pool: list[Task]) -> list[Ses
         )
 
         start_time = fake.date_time_between(start_date="-48h", end_date="now")
+
+        # Generate a random end time
         end_time = (
             start_time + timedelta(minutes=random.randint(25, 240))
             if random.choice([True, False])
@@ -106,13 +112,14 @@ def create_random_sessions(num_sessions: int, task_pool: list[Task]) -> list[Ses
     return sessions
 
 
-if __name__ == "__main__":
-    # for testing
-    random_tasks = create_random_tasks(5)
-    random_sessions = create_random_sessions(3, random_tasks)
-
-    for task in random_tasks:
-        print(task)
-
-    for session in random_sessions:
-        print(session)
+#
+# if __name__ == "__main__":
+#     # for testing
+#     random_tasks = create_random_tasks(5)
+#     random_sessions = create_random_sessions(3, random_tasks)
+#
+#     for task in random_tasks:
+#         print(task)
+#
+#     for session in random_sessions:
+#         print(session)

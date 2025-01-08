@@ -1,7 +1,9 @@
 import json
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timezone
+from datetime import timedelta
 from pathlib import Path
+from sqlite3 import DatabaseError
 from typing import List, Optional, Dict, Any
 from dataclasses import dataclass, field
 
@@ -31,49 +33,73 @@ class PomodoroDB:
         self.connection.row_factory = sqlite3.Row  # Enables row access by column name
         self._create_tables()
 
+    def get_connection(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        return conn
+
     def _create_tables(self):
         """
-        Creates the `tasks` and `sessions` tables in the database if they don't exist.
-        Ensures the structure of the database is set up correctly.
+        Creates the `tasks`, `sessions`, and `tracked_tasks` tables in the database if they don't exist.
         """
         with self.connection as conn:
             # Task table
             conn.execute(
                 """
-            CREATE TABLE IF NOT EXISTS tasks (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                title TEXT NOT NULL,
-                text TEXT,
-                completed BOOLEAN NOT NULL DEFAULT 0,
-                ongoing BOOLEAN NOT NULL DEFAULT 0,
-                priority INTEGER NOT NULL DEFAULT 1,
-                category_id INTEGER,
-                attempts INTEGER NOT NULL DEFAULT 0,
-                time_spent INTEGER NOT NULL DEFAULT 0,
-                due_date TEXT,
-                is_daily BOOLEAN NOT NULL DEFAULT 0,
-                is_weekly BOOLEAN NOT NULL DEFAULT 0,
-                is_monthly BOOLEAN NOT NULL DEFAULT 0,
-                is_yearly BOOLEAN NOT NULL DEFAULT 0,
-                days_of_week TEXT,
-                created_at TEXT NOT NULL,
-                updated_at TEXT NOT NULL
+                CREATE TABLE IF NOT EXISTS tasks (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    title TEXT NOT NULL,
+                    text TEXT,
+                    completed BOOLEAN NOT NULL DEFAULT 0,
+                    ongoing BOOLEAN NOT NULL DEFAULT 0,
+                    priority INTEGER NOT NULL DEFAULT 1,
+                    category_id INTEGER,
+                    attempts INTEGER NOT NULL DEFAULT 0,
+                    time_spent INTEGER NOT NULL DEFAULT 0,
+                    due_date TEXT,
+                    is_daily BOOLEAN NOT NULL DEFAULT 0,
+                    is_weekly BOOLEAN NOT NULL DEFAULT 0,
+                    is_monthly BOOLEAN NOT NULL DEFAULT 0,
+                    is_yearly BOOLEAN NOT NULL DEFAULT 0,
+                    days_of_week TEXT,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )
+                """
             )
-            """
-            )
+
             # Session table
             conn.execute(
                 """
-            CREATE TABLE IF NOT EXISTS sessions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                start_time TEXT NOT NULL,
-                end_time TEXT,
-                tasks TEXT NOT NULL, -- JSON list of task IDs
-                completed BOOLEAN NOT NULL DEFAULT 0,
-                created_at TEXT NOT NULL,
-                updated_at TEXT NOT NULL
+                CREATE TABLE IF NOT EXISTS sessions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    start_time TEXT NOT NULL,
+                    end_time TEXT,
+                    tasks TEXT, -- JSON list of task IDs
+                    completed BOOLEAN NOT NULL DEFAULT 0,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )
+                """
             )
-            """
+
+            # Tracked Tasks table
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS tracked_tasks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                task_id INTEGER NOT NULL,
+                session_id INTEGER, -- NULL if the task hasn't been linked to a session yet
+                start_time TEXT NOT NULL,
+                end_time TEXT, -- NULL if tracking is ongoing
+                time_spent INTEGER NOT NULL DEFAULT 0, -- Total time spent on the task
+                progress TEXT, -- Optional metadata (e.g., JSON to store task progress)
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY (task_id) REFERENCES tasks (id),
+                FOREIGN KEY (session_id) REFERENCES sessions (id)
+            );
+                """
             )
 
     # --- Task CRUD Operations ---
@@ -134,13 +160,12 @@ class PomodoroDB:
             return self._row_to_task(row) if row else None
 
     def update_task(self, task: Task) -> None:
-        """
-        Updates an existing task in the database.
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT id FROM tasks WHERE id = ?", (task.id,))
+            if not cursor.fetchone():
+                raise ValueError(f"Task {task.id} not found")
 
-        Args:
-            - task: The Task object with updated details (must include a valid ID).
-        """
-        with self.connection as conn:
             conn.execute(
                 """
             UPDATE tasks
@@ -148,8 +173,7 @@ class PomodoroDB:
                 category_id = ?, attempts = ?, time_spent = ?, 
                 due_date = ?, is_daily = ?, is_weekly = ?, is_monthly = ?, 
                 is_yearly = ?, days_of_week = ?, updated_at = ?
-            WHERE id = ?
-            """,
+            WHERE id = ?""",
                 (
                     task.title,
                     task.text,
@@ -164,7 +188,7 @@ class PomodoroDB:
                     task.is_monthly,
                     task.is_yearly,
                     json.dumps(task.days_of_week),
-                    task.updated_at.isoformat(),
+                    datetime.now(timezone.utc).isoformat(),
                     task.id,
                 ),
             )
@@ -190,7 +214,8 @@ class PomodoroDB:
             rows = conn.execute("SELECT * FROM tasks").fetchall()
             return [self._row_to_task(row) for row in rows]
 
-    def _row_to_task(self, row) -> Task:
+    @staticmethod
+    def _row_to_task(row) -> Task:
         """
         Converts a database row to a Task object.
 
@@ -254,6 +279,10 @@ class PomodoroDB:
 
     def get_session(self, session_id: int) -> Optional[Session]:
         with self.connection as conn:
+
+            tasks = conn.execute(
+                "SELECT * FROM tracked_tasks where session_id = ?", (session_id,)
+            ).fetchall()
             cursor = conn.execute("SELECT * FROM sessions WHERE id = ?", (session_id,))
             row = cursor.fetchone()
             if row is None:
@@ -264,7 +293,7 @@ class PomodoroDB:
                 end_time=(
                     datetime.fromisoformat(row["end_time"]) if row["end_time"] else None
                 ),
-                tasks=json.loads(row["tasks"]),
+                tasks=tasks,
                 completed=row["completed"],
                 created_at=datetime.fromisoformat(row["created_at"]),
                 updated_at=datetime.fromisoformat(row["updated_at"]),
@@ -286,7 +315,7 @@ class PomodoroDB:
                         if row["end_time"]
                         else None
                     ),
-                    tasks=json.loads(row["tasks"]),
+                    tasks=json.loads(row["tasks"]) if row["tasks"] != "" else [],
                     completed=row["completed"],
                     created_at=datetime.fromisoformat(row["created_at"]),
                     updated_at=datetime.fromisoformat(row["updated_at"]),
@@ -342,6 +371,248 @@ class PomodoroDB:
                 f"UPDATE sessions SET {fields}, updated_at = ? WHERE id = ?",
                 (*values, datetime.now().isoformat(), session.id),
             )
+
+    # --- Tracked Task Handling ---
+    def add_task_to_tracking(self, task_id: int) -> None:
+        with self.get_connection() as conn:
+            now = datetime.now(timezone.utc)
+            conn.execute(
+                """INSERT INTO tracked_tasks (
+                    task_id, start_time, created_at, updated_at
+                ) VALUES (?, ?, ?, ?)""",
+                (task_id, now.isoformat(), now.isoformat(), now.isoformat()),
+            )
+
+    def start_session(self) -> int:
+        """
+        Starts a new session and links all queued tracked tasks to the session.
+
+        Returns:
+            - The ID of the newly created session.
+        """
+        with self.connection as conn:
+            # Create a new session
+            cursor = conn.execute(
+                """
+                INSERT INTO sessions (
+                    start_time, created_at, updated_at
+                ) VALUES (?, ?, ?)
+                """,
+                (
+                    datetime.now().isoformat(),
+                    datetime.now().isoformat(),
+                    datetime.now().isoformat(),
+                ),
+            )
+            session_id = cursor.lastrowid
+            sess = self.get_session(session_id)
+            # Assign all unlinked tracked tasks to the new session
+            sess.tasks = [task["id"] for task in self.get_ongoing_tracked_tasks()]
+            self.update_session(sess)
+            cursor.execute(
+                """
+            UPDATE tracked_tasks 
+            SET session_id = ?
+            """,
+                (session_id,),
+            )
+
+            return session_id
+
+    def end_task_tracking(self, task_id: int, session_id: int) -> None:
+        with self.get_connection() as conn:
+            current_time = datetime.now(timezone.utc)
+            task = conn.execute(
+                """SELECT start_time FROM tracked_tasks
+                   WHERE task_id = ? AND session_id = ? AND end_time IS NULL""",
+                (task_id, session_id),
+            ).fetchone()
+
+            if task is None:
+                raise ValueError("Task is not being tracked in the specified session.")
+
+            start_time = datetime.fromisoformat(task["start_time"])
+            if start_time.tzinfo is None:
+                start_time = start_time.replace(tzinfo=timezone.utc)
+
+            time_spent = int(
+                (current_time - start_time).total_seconds() / 60
+            )  # Time in minutes
+
+            conn.execute(
+                """UPDATE tracked_tasks
+                   SET end_time = ?, time_spent = ?, updated_at = ?
+                   WHERE task_id = ? AND session_id = ?""",
+                (
+                    current_time.isoformat(),
+                    time_spent,
+                    current_time.isoformat(),
+                    task_id,
+                    session_id,
+                ),
+            )
+
+    def get_ongoing_tracked_tasks(self) -> list[dict]:
+        """
+        Retrieves all tasks currently being tracked but not yet ended.
+
+        Returns:
+            - A list of dictionaries representing ongoing tracked tasks.
+        """
+        with self.connection as conn:
+            rows = conn.execute(
+                """
+                SELECT * FROM tracked_tasks
+                WHERE end_time IS NULL
+                """
+            ).fetchall()
+            return [dict(row) for row in rows]
+
+    def end_session(self, session_id: int) -> list[Task]:
+        """
+        This function ends an active session, updates the session's end time, and updates the time tracking
+        for each tracked task associated with the session.
+
+        Args:
+            session_id (int): The ID of the session that needs to be ended.
+
+        Returns:
+            list[Task]: A list of Task objects that have been updated with the new time tracking data.
+
+        Raises:
+            ValueError: If the session does not exist or has already ended, or if there is an issue with time tracking.
+        """
+        # Begin a new transaction to ensure that all database changes are atomic
+        with self.get_connection() as conn:
+            try:
+                # Start the transaction
+                conn.execute("BEGIN TRANSACTION")
+
+                # Get the current UTC time as the session end time
+                current_time = datetime.now(timezone.utc)
+
+                # Check if the session exists and if it hasn't ended yet
+                cursor = conn.execute(
+                    "SELECT id FROM sessions WHERE id = ? AND end_time IS NULL",
+                    (
+                        session_id,
+                    ),  # The session ID is passed as a parameter to prevent SQL injection
+                )
+
+                # If no session is found, or it's already ended, rollback and raise an error
+                if not cursor.fetchone():
+                    conn.execute("ROLLBACK")
+                    raise ValueError("Invalid session or already ended")
+
+                # Update the session's end time and mark it as updated
+                conn.execute(
+                    "UPDATE sessions SET end_time = ?, updated_at = ?, completed= ? WHERE id = ?",
+                    (
+                        current_time.isoformat(),
+                        current_time.isoformat(),
+                        True,
+                        session_id,
+                    ),
+                    # Use ISO 8601 format for datetime
+                )
+
+                # Retrieve all tasks that are being tracked in the session
+                tracked_tasks = conn.execute(
+                    "SELECT * FROM tracked_tasks WHERE session_id = ?",
+                    (session_id,),  # The session ID to filter the tracked tasks
+                ).fetchall()
+
+                updated_tasks = []  # List to store the updated tasks
+
+                # Iterate through each tracked task to calculate and update time tracking
+                for tracked in tracked_tasks:
+                    print(tracked)
+                    # Convert the start time of the tracked task to a timezone-aware datetime (UTC)
+                    start_time = datetime.fromisoformat(tracked["start_time"])
+                    if start_time.tzinfo is None:
+                        start_time = start_time.replace(
+                            tzinfo=timezone.utc
+                        )  # Ensure it's UTC-aware
+
+                    # Calculate the time spent on the task by subtracting start time from current time
+                    time_spent = int((current_time - start_time).total_seconds())
+
+                    # Debugging: Print the time calculation for the tracked task
+                    print(
+                        f"Start Time: {start_time}, Current Time: {current_time}, Time Spent: {time_spent}"
+                    )
+
+                    # If the calculated time is negative (start_time > current_time), rollback the transaction
+                    if time_spent < 0:
+                        conn.execute("ROLLBACK")
+                        raise ValueError(
+                            f"Invalid time calculation for task {tracked['task_id']}"
+                        )
+
+                    t = self.get_task(tracked["task_id"])
+                    # t.modify(
+                    #     updates={
+                    #         "time_spent": time_spent + tracked.time_spent,
+                    #         "updated_at": datetime.now(timezone.utc),
+                    #         "end_time": datetime.now(timezone.utc),
+                    #     }
+                    # )
+                    t.time_spent += time_spent
+                    t.updated_at = datetime.now(timezone.utc)
+
+                    conn.execute("COMMIT")
+                    #  to not fuck up the timings
+
+                    self.update_task(t)  # this lil fucker locks up the db too
+
+                    conn.execute("BEGIN TRANSACTION")
+
+                    # Update the tracked task with the end time and the calculated time spent
+                    conn.execute(
+                        """UPDATE tracked_tasks 
+                           SET end_time = ?, time_spent = ?, updated_at = ?
+                           WHERE task_id = ? AND session_id = ?""",
+                        (
+                            current_time.isoformat(),  # Set end time to current UTC time
+                            time_spent,  # The calculated time spent on the task in seconds
+                            current_time.isoformat(),  # Updated timestamp
+                            tracked["task_id"],  # The ID of the task being updated
+                            session_id,  # The session ID to ensure we update the correct task
+                        ),
+                    )
+
+                    # # Update the main task table by adding the time spent to the existing value
+                    # conn.execute(
+                    #     """UPDATE tasks
+                    #        SET time_spent = time_spent + ?, updated_at = ?
+                    #        WHERE id = ?""",
+                    #     (time_spent, current_time.isoformat(), tracked["task_id"]),
+                    # )
+                    print(
+                        f"""
+                        {tracked["task_id"]=},
+                        {self.get_task(tracked["task_id"]).time_spent=},
+                        {tracked["time_spent"]=},
+                        """
+                    )
+                    # Fetch the updated task object and add it to the list
+                    updated_tasks.append(self.get_task(tracked["task_id"]))
+
+                # Commit the transaction to persist all changes
+                conn.execute("COMMIT")
+
+                # Return the list of updated tasks
+                return updated_tasks
+
+            except Exception as e:
+                # In case of any error, rollback the transaction to avoid partial updates
+                try:
+                    conn.execute("ROLLBACK")
+                except Exception as e_2:
+                    # If rollback fails, raise the original exception
+                    raise e_2 and e
+                # Raise the exception that caused the failure
+                raise e
 
 
 # Handle task creation

@@ -2,14 +2,10 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional
 
-from faker import Faker
 import rich.repr
 from textual.events import Event
 
-fake = Faker()
 
-
-@rich.repr.auto
 @dataclass
 class Task:
     """
@@ -37,13 +33,13 @@ class Task:
 
     id: Optional[int] = None
     title: str = "Untitled Task"
-    text: str = ""
+    text: str = "No Description Given"
     completed: bool = False
     ongoing: bool = False
     priority: int = 1
     category_id: Optional[int] = None
     attempts: int = 0
-    time_spent: int = 0
+    time_spent: float = 0
     due_date: Optional[datetime] = None
     is_daily: bool = False
     is_weekly: bool = False
@@ -52,6 +48,45 @@ class Task:
     days_of_week: list[str] = field(default_factory=list)
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
+
+    def __eq__(self, other):
+        if not isinstance(other, Task):
+            return False
+        return (
+            self.id == other.id
+            and self.title == other.title
+            and self.text == other.text
+            and self.completed == other.completed
+            and self.ongoing == other.ongoing
+            and self.priority == other.priority
+            and self.category_id == other.category_id
+            and self.attempts == other.attempts
+            and self.time_spent == other.time_spent
+            and self.due_date == other.due_date
+            and self.is_daily == other.is_daily
+            and self.is_weekly == other.is_weekly
+            and self.is_monthly == other.is_monthly
+            and self.is_yearly == other.is_yearly
+            and self.days_of_week == other.days_of_week
+            and self.created_at == other.created_at
+            and self.updated_at == other.updated_at
+        )
+
+    def modify(self, updates: dict[str, any]):
+        """
+        Modifies the task's attributes based on the provided updates.
+
+        Args:
+            - updates: A dictionary where keys are the attribute names and values are the new values.
+        """
+        for key, value in updates.items():
+            if hasattr(self, key):  # Check if the attribute exists in the Task class
+                setattr(self, key, value)
+            else:
+                raise AttributeError(f"Task has no attribute '{key}'")
+
+        # Ensure the `updated_at` field is always updated when any modification happens.
+        self.updated_at = datetime.now()
 
 
 class TaskData(Event):
