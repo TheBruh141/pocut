@@ -88,6 +88,55 @@ class Task:
         # Ensure the `updated_at` field is always updated when any modification happens.
         self.updated_at = datetime.now()
 
+    @classmethod
+    def from_dict(cls, data: dict) -> "Task":
+        """
+        Create a Task instance from a dictionary.
+
+        Args:
+            data: A dictionary containing Task attributes.
+
+        Returns:
+            Task: An instance of Task.
+        """
+        try:
+            return cls(
+                id=data.get("id"),
+                title=data.get("title", "Untitled Task"),
+                text=data.get("text", "No Description Given"),
+                completed=data.get("completed", False),
+                ongoing=data.get("ongoing", False),
+                priority=data.get("priority", 1),
+                category_id=data.get("category_id"),
+                attempts=data.get("attempts", 0),
+                time_spent=data.get("time_spent", 0),
+                due_date=data.get("due_date"),
+                is_daily=data.get("is_daily", False),
+                is_weekly=data.get("is_weekly", False),
+                is_monthly=data.get("is_monthly", False),
+                is_yearly=data.get("is_yearly", False),
+                days_of_week=data.get("days_of_week", []),
+                created_at=data.get("created_at", datetime.now()),
+                updated_at=data.get("updated_at", datetime.now()),
+            )
+
+        # Error messages
+        except KeyError as e:
+            raise KeyError(
+                f"Task has no attribute '{e.args[0]}'.\n"
+                f"If you are not a developer, please report this error to\n"
+                f"https://github.com/TheBruh141/pocut"
+                f"Sorry for any disturbances"
+            ) from e
+
+        except Exception as e:
+            raise Exception(
+                "Task error. Task seems to be malformed"
+                f"If you are not a developer, please report this error to\n"
+                f"https://github.com/TheBruh141/pocut"
+                f"Sorry for any disturbances"
+            ) from e
+
 
 class TaskData(Event):
     """

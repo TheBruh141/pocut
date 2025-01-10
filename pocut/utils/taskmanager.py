@@ -10,9 +10,7 @@ from dataclasses import dataclass, field
 import textual
 
 import pocut.utils.task as task
-
-Task = task.Task
-Session = task.Session
+from pocut.utils.task import Task, Session
 
 
 class PomodoroDB:
@@ -556,13 +554,7 @@ class PomodoroDB:
                         )
 
                     t = self.get_task(tracked["task_id"])
-                    # t.modify(
-                    #     updates={
-                    #         "time_spent": time_spent + tracked.time_spent,
-                    #         "updated_at": datetime.now(timezone.utc),
-                    #         "end_time": datetime.now(timezone.utc),
-                    #     }
-                    # )
+
                     t.time_spent += time_spent
                     t.updated_at = datetime.now(timezone.utc)
 
@@ -588,12 +580,6 @@ class PomodoroDB:
                     )
 
                     # # Update the main task table by adding the time spent to the existing value
-                    # conn.execute(
-                    #     """UPDATE tasks
-                    #        SET time_spent = time_spent + ?, updated_at = ?
-                    #        WHERE id = ?""",
-                    #     (time_spent, current_time.isoformat(), tracked["task_id"]),
-                    # )
                     print(
                         f"""
                         {tracked["task_id"]=},
