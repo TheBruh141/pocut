@@ -4,8 +4,8 @@ from textual.widgets import TabbedContent, TabPane, Tabs, Button
 
 from pocut import AppState
 from pocut.config import DEFAULT_CONFIG_PATH, parse_args
-from pocut.widgets import PomodoroClock, SettingsTab
-from pocut.widgets.todo_screen import TodoTab
+from pocut.pages import PomodoroTab, SettingsTab
+from pocut.pages.todo_screen import TodoTab
 
 
 class PocutApp(App):
@@ -45,7 +45,7 @@ class PocutApp(App):
         with TabbedContent(id="the-parent") as tc:
             self._tabs = tc
             with TabPane("Pomodoro", id="pomodoro"):
-                yield PomodoroClock(self.state.config_path, self.state.debug_mode)
+                yield PomodoroTab(self.state.config_path, self.state.debug_mode)
             with TabPane("Todos", id="todo_tab"):
                 yield TodoTab(self.state)
 

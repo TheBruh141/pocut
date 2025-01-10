@@ -122,7 +122,7 @@ const _finishSearch = (resultCount) => {
   else
     Search.status.innerText = Documentation.ngettext(
       "Search finished, found one page matching the search query.",
-      "Search finished, found ${resultCount} pages matching the search query.",
+      "Search finished, found ${resultCount} widgets matching the search query.",
       resultCount,
     ).replace('${resultCount}', resultCount);
 };

@@ -169,7 +169,7 @@ class PomodoroDB:
             conn.execute(
                 """
             UPDATE tasks
-            SET title = ?, text = ?, completed = ?, priority = ?, 
+            SET title = ?, text = ?, completed = ?, ongoing = ?, priority = ?, 
                 category_id = ?, attempts = ?, time_spent = ?, 
                 due_date = ?, is_daily = ?, is_weekly = ?, is_monthly = ?, 
                 is_yearly = ?, days_of_week = ?, updated_at = ?
@@ -178,6 +178,7 @@ class PomodoroDB:
                     task.title,
                     task.text,
                     task.completed,
+                    task.ongoing,
                     task.priority,
                     task.category_id,
                     task.attempts,
@@ -230,6 +231,7 @@ class PomodoroDB:
             title=row["title"],
             text=row["text"],
             completed=bool(row["completed"]),
+            ongoing=bool(row["ongoing"]),
             priority=row["priority"],
             category_id=row["category_id"],
             attempts=row["attempts"],
@@ -382,6 +384,10 @@ class PomodoroDB:
                 ) VALUES (?, ?, ?, ?)""",
                 (task_id, now.isoformat(), now.isoformat(), now.isoformat()),
             )
+
+    def remove_tracking_tasks(self, task_id: int) -> None:
+        with self.get_connection() as conn:
+            conn.execute(f"""DELETE FROM tracked_tasks WHERE task_id = {task_id}""")
 
     def start_session(self) -> int:
         """

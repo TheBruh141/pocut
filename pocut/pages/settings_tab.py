@@ -4,7 +4,7 @@ from textual.containers import Vertical, Container, Center, Horizontal
 from textual.widgets import Button, Input, Label, Footer, Switch
 
 from pocut.state import AppState
-from pocut.widgets.common.filemodal import FileSelectorModal
+from pocut.pages.widgets.common import FileSelectorModal
 
 
 class SettingsTab(Container):
