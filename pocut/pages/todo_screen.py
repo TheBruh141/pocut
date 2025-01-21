@@ -9,6 +9,7 @@ from textual.containers import (
     ScrollableContainer,
     VerticalScroll,
 )
+from textual.events import Event
 from textual.widgets import (
     Label,
     Button,
@@ -26,8 +27,8 @@ from pocut.pages.widgets.common import SmallButton
 class TodoTab(Container):
     BINDINGS = [
         ("a", "create_task", "create task"),
-        ("d", "delete_task", "delete task"),
-        ("e", "edit_task", "edit task"),
+        # ("d", "delete_task", "delete task"), #TODO
+        # ("e", "edit_task", "edit task"),
     ]
     db: PomodoroDB
 
@@ -101,6 +102,7 @@ class TodoTab(Container):
 
         try:
             task_id = db.add_task(data.task)
+            self.post_message(TodoTask.ShouldCheckDatabase())
             print(f"Task created with ID: {task_id}")
         except Exception as e:
             print(f"Error creating task: {e}")
@@ -128,6 +130,7 @@ class TodoTab(Container):
         try:
             data.task.updated_at = datetime.now()
             db.update_task(data.task)
+            self.post_message(TodoTask.ShouldCheckDatabase())
             print(f"Task with ID {data.task.id} updated.")
         except Exception as e:
             print(f"Error updating task: {e}")
@@ -146,6 +149,29 @@ class TodoTab(Container):
         db = PomodoroDB()
         try:
             db.delete_task(data.task.id)
+            self.post_message(TodoTask.ShouldCheckDatabase())
             print(f"Task with ID {data.task.id} deleted.")
         except Exception as e:
             print(f"Error deleting task: {e}")
+
+    @on(t.TaskData.Complete)
+    def handle_data_complete(self, data: t.TaskData) -> None:
+        """
+        Handles Completing an existing task in the database.
+        """
+        self.notify("Completing task...")
+        db = PomodoroDB()
+        try:
+            db.set_task_completion_task(data.task)
+            self.post_message(TodoTask.ShouldCheckDatabase())
+            print(f"Task with ID {data.task.id} updated.")
+            self.refresh(recompose=True, layout=True)
+        except Exception as e:
+            print(f"Error updating task: {e}")
+
+    def action_create_task(self):
+        # why reinvent the wheel when you can steal it from your
+        # "__class mates__"
+        # yep. I'll see my self out...
+        self.on_button_pressed(Button.Pressed(Button(id="add-task")))
+        # self.notify("pressed a")

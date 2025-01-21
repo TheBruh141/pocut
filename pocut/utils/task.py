@@ -89,7 +89,7 @@ class Task:
         self.updated_at = datetime.now()
 
     @classmethod
-    def from_dict(cls, data: dict) -> "Task":
+    def from_dict(cls, data: dict, is_tracked: bool = False) -> "Task":
         """
         Create a Task instance from a dictionary.
 
@@ -101,7 +101,7 @@ class Task:
         """
         try:
             return cls(
-                id=data.get("id"),
+                id=data.get("id") if not is_tracked else data.get("task_id"),
                 title=data.get("title", "Untitled Task"),
                 text=data.get("text", "No Description Given"),
                 completed=data.get("completed", False),
@@ -196,6 +196,17 @@ class TaskData(Event):
         Represents a create event for a Task.
         """
 
+        def __init__(self, _task: Task):
+            """
+            Initializes the Create event with a task.
+
+            Args:
+                _task (Task): The task to be created.
+            """
+            super().__init__()
+            self.task: Task = _task
+
+    class Complete(Event):
         def __init__(self, _task: Task):
             """
             Initializes the Create event with a task.

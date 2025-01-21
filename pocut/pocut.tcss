@@ -4,6 +4,7 @@ Screen {
 Tab {
     overflow: auto;
 }
+
 #todo-tab-button-cluster {
     height: 1;
     #add-task {
@@ -76,11 +77,18 @@ TimeDisplay {
 $phase_show_border_color: white;
 
 TaskCreatorModal {
-    layer: 2;
-    padding: 3;
+
     align: center middle;
-    background: $surface 0%;
-    border: thick $background 0%;
+    Container {
+        width: 70%;
+        height: 55%;
+        background: black;
+        border: thick round gray 30%;
+    }
+    HorizontalScroll {
+    height: 5;
+    }
+    background: black 50%;
 }
 
 #settings_container {
@@ -157,7 +165,7 @@ TaskCreatorModal {
 #clock_cluster {
     outline: round white 40%;
     padding: 2 8;
-    max-height: 80%;
+    max-height: 87vh;
     align: center middle !important;
 
     #timer_digits {
@@ -201,8 +209,92 @@ TaskCreatorModal {
         offset: 0 1;
     }
 
+
+}
+
+Tracker {
+    layers: top bottom;
+    align: center middle;
+    width: auto;
+    max-width: 65%;
+    #title {
+        opacity: 40%;
+        width: 100%;
+        align:center middle ;
+        text-align: center;
+        background: transparent;
+    }
+    #seperator {
+        opacity: 40%;
+        color: gray;
+        width: 100%;
+    }
+    Label {
+        width: 40;
+        text-align: center;
+    }
+
+    height: 10;
+    #tracker-grid{
+        layout: grid;
+        grid-size: 5;
+        grid-columns: 8% 23% 23% 23% 23%;
+    }
+    #selector {
+        visibility: hidden;
+    }
+    .visible {
+        visibility: visible !important;
+        text-align:right;
+    }
+
+    #tracked-task-tracker {
+        layout: grid;
+        grid-columns: 8% 23% 23% 23% 23%;
+        grid-size: 5;
+        height:1;
+
+
+        #selector {
+        color: white;
+        }
+
+    }
+    TrackedTask{
+        color: gray;
+    }
+    TrackedTask:focus{
+        text-style: italic;
+    }
+
+
+}
+
+Tracker:focus {
+    background-tint: red;
 }
 
 #button_cluster{
+    align: center middle;
 
+    Button {
+        background: transparent;
+        border: tab white 60%;
+        padding: 1;
+
+    }
+    #start_stop {
+        border-right: none;
+        background: green 30%;
+    }
+    #reset {
+        border-right: none;
+        border-left: none;
+        background: yellow 10%;
+    }
+    #toggle_phase {
+        border-left: none;
+        background: red 10%;
+
+    }
 }

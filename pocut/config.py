@@ -26,18 +26,10 @@ def parse_args():
         help="Enable debug mode with verbose logging to the console.",
     )
     parser.add_argument(
-        "--log-file",
-        type=str,
-        default=DEFAULT_LOG_FILE,
-        help="Specify the log file path. Default: pocut_debug.log",
-    )
-    parser.add_argument(
-        "--max-debug-file-size",
-        type=int,
-        default=DEFAULT_MAX_LOG_FILE_SIZE_MB,
-        help=(
-            "Maximum size (in MB) for the debug log file before it rotates. "
-            f"Default: {DEFAULT_MAX_LOG_FILE_SIZE_MB} MB."
-        ),
+        "--dump-dom",
+        metavar="FILE",
+        nargs="?",
+        const="dom.textual_dom_dump",  # Default filename if no argument is provided
+        help="Dump DOM configuration to a file. Default: 'dom.textual_dom_dump'.",
     )
     return parser.parse_args()

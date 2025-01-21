@@ -1,7 +1,13 @@
 from pathlib import Path
 import toml
-from loguru import logger
-from pre_commit.clientlib import load_config
+import logging as log
+
+from textual.logging import TextualHandler
+
+log.basicConfig(
+    level="NOTSET",
+    handlers=[TextualHandler()],
+)
 
 
 class AppState:
@@ -26,10 +32,10 @@ class AppState:
             dict: Configuration data.
         """
         if self.config_path.exists():
-            logger.debug(f"Loading configuration from {self.config_path}")
+            log.debug(f"Loading configuration from {self.config_path}")
             return toml.load(self.config_path)
         else:
-            logger.warning(f"Configuration file not found. Using default values.")
+            log.warning(f"Configuration file not found. Using default values.")
             default_config = {
                 "durations": {"work_duration": 1500, "break_duration": 300},
                 "audio": {
@@ -37,12 +43,10 @@ class AppState:
                     "start_sound": "sounds/default_start.wav",
                     "stop_sound": "sounds/default_stop.wav",
                 },
-                "todo": {
-                    "database_file_path": "pocut/db/todo.sqlite"
-                },
+                "todo": {"database_file_path": "pocut/db/todo.sqlite"},
                 "misc": {
                     "clock_type": 1,
-                }
+                },
             }
             self.save_config(default_config)
             return default_config
@@ -58,7 +62,7 @@ class AppState:
         Args:
             config (dict): Configuration data.
         """
-        logger.info(f"Saving configuration to {self.config_path}")
+        log.info(f"Saving configuration to {self.config_path}")
         with open(self.config_path, "w") as f:
             toml.dump(config, f)
 

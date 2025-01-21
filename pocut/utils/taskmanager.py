@@ -8,7 +8,7 @@ from typing import List, Optional, Dict, Any
 from dataclasses import dataclass, field
 
 import textual
-
+from textual import log
 import pocut.utils.task as task
 from pocut.utils.task import Task, Session
 
@@ -158,6 +158,9 @@ class PomodoroDB:
             return self._row_to_task(row) if row else None
 
     def update_task(self, task: Task) -> None:
+        """
+        updates the given task in the main database
+        """
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT id FROM tasks WHERE id = ?", (task.id,))
@@ -201,6 +204,7 @@ class PomodoroDB:
         """
         with self.connection as conn:
             conn.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
+            conn.execute("DELETE FROM tracked_tasks WHERE id = ?", (task_id,))
 
     def list_tasks(self) -> List[Task]:
         """
@@ -212,6 +216,37 @@ class PomodoroDB:
         with self.connection as conn:
             rows = conn.execute("SELECT * FROM tasks").fetchall()
             return [self._row_to_task(row) for row in rows]
+
+    def set_task_completion_task(self, t: task) -> None:
+        """
+        Marks the task as completed and ensures it is no longer tracked.
+        Or Does the opposite.
+        Args:
+            - t: the task to set.
+        """
+        log("completed task, task_id={}".format(t.id))
+        with self.connection as conn:
+            # Set the task as completed
+            conn.execute(
+                """
+                UPDATE tasks
+                SET completed = ?, ongoing = 0
+                WHERE id = ?
+                """,
+                (
+                    not t.completed,
+                    t.id,
+                ),
+            )
+
+            # Remove the task from any ongoing tracking
+            conn.execute(
+                """
+                DELETE FROM tracked_tasks
+                WHERE task_id = ? AND end_time IS NULL
+                """,
+                (t.id,),
+            )
 
     @staticmethod
     def _row_to_task(row) -> Task:
@@ -464,13 +499,36 @@ class PomodoroDB:
             - A list of dictionaries representing ongoing tracked tasks.
         """
         with self.connection as conn:
-            rows = conn.execute(
+            # Step 1: Get task_ids from tracked_tasks where end_time IS NULL
+            active_task_ids = conn.execute(
                 """
-                SELECT * FROM tracked_tasks
+                SELECT DISTINCT task_id 
+                FROM tracked_tasks 
                 WHERE end_time IS NULL
                 """
             ).fetchall()
-            return [dict(row) for row in rows]
+
+            # Convert rows to a list of task IDs
+            task_ids = [row["task_id"] for row in active_task_ids]
+
+            if not task_ids:
+                return []  # No active tracked tasks, return an empty list
+
+            # Step 2: Fetch tasks from the tasks table where id is in task_ids
+            placeholder = ",".join(
+                "?" for _ in task_ids
+            )  # Create placeholders for SQL IN clause
+            tasks = conn.execute(
+                f"""
+                    SELECT * 
+                    FROM tasks 
+                    WHERE id IN ({placeholder})
+                    """,
+                task_ids,  # Pass task_ids as parameters to prevent SQL injection
+            ).fetchall()
+
+            # Convert the result to a list of dictionaries
+            return [dict(row) for row in tasks]
 
     def end_session(self, session_id: int) -> list[Task]:
         """

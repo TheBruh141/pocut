@@ -9,16 +9,14 @@ from pocut.pages.widgets.common import SmallButton
 from pocut.utils import task as t
 
 
+# TODO: tasks don't update.
 class TodoTask(Container, can_focus=True):
     # Note for the wizards that have decided to edit this.
     # we can't have a property named self.task because
     # textual already has a property named task.
 
-    class Entered(Message, bubble=True):
-        def __init__(self, id: int, original: "TodoTask"):
-            super().__init__()
-            self.id = id
-            self.original: TodoTask = original
+    class ShouldCheckDatabase(Message, bubble=True):
+        pass
 
     def __init__(self, task: t.Task, **kwargs):
         super().__init__(**kwargs)
@@ -100,16 +98,12 @@ class TodoTask(Container, can_focus=True):
 
             # yield Digits(self.info.priority.__str__())
 
-    def on_key(self, event: events.Key) -> None:
-        if event.key == "enter" or event.key == "space":
-            self.post_message(self.Entered(self.info.id, self))
-
     @on(Button.Pressed, "#complete-button")
     def handle_complete_button_press(self, event: Button.Pressed):
-        self.info.completed = not self.info.completed
+
         event.button.label = "[ ]" if self.info.completed else "\[x]"
-        self.refresh(recompose=True)
-        self.post_message(t.TaskData.Update(self.info))
+        self.notify("ASDASDA")
+        self.post_message(t.TaskData.Complete(self.info))
         pass
 
     @on(Button.Pressed, "#delete-button")

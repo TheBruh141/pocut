@@ -22,7 +22,6 @@ class TaskCreatorModal(ModalScreen[bool]):
         Compose the layout for the Task Creator modal screen.
         """
         with Container():
-            yield Label(f"parent: {self.parent}")
             yield Static("Task Title:")
             yield Input(placeholder="Enter task title", id="task-title")
 

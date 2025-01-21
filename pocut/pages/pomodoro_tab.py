@@ -1,9 +1,10 @@
 from functools import cache
 
+from textual import on, events, work
 from textual.app import ComposeResult
-from textual.containers import Vertical, Center
+from textual.containers import Vertical, Center, Horizontal
 from textual.widgets import Static, Button, Footer, Label
-from pocut.pages.widgets.pomodoro_tab import TimeDisplay
+from pocut.pages.widgets.pomodoro_tab import TimeDisplay, Tracker
 from pocut.pages.widgets.pomodoro_tab import PhaseDisplay
 
 from pocut.state import AppState
@@ -28,8 +29,11 @@ class PomodoroTab(Static):
         """
         @brief Initialize the PomodoroClock widget.
         @param state Shared application state.
+        @param debug_mode Whether debug mode is enabled.
         """
         super().__init__()
+        self.recompose_due_to_tracker = False
+        self.tracker = None
         self.state = AppState(config_path, debug_mode)
 
     def on_mount(self) -> None:
@@ -131,13 +135,27 @@ class PomodoroTab(Static):
                     yield PhaseDisplay(self.state, id="phase_show")
 
                 with Center():
-                    yield Label("# Tasks: ")
+                    self.tracker = Tracker(id="tracked_tasks")
+                    yield self.tracker
 
-            with Center(id="button_cluster"):
+            with Horizontal(id="button_cluster"):
                 yield Button("Start", id="start_stop", variant="success")
                 yield Button("Reset", id="reset")
                 yield Button("Toggle Phase", id="toggle_phase", variant="primary")
         yield Footer()
+
+    def update_tracker(self):
+        # self.notify("should update tracker")
+        self.tracker.check_tasks()
+        self.recompose_due_to_tracker = True
+
+    @on(events.Show)
+    async def handle_update(self) -> None:
+        if self.recompose_due_to_tracker:
+            await self.tracker.recompose()
+            self.recompose_due_to_tracker = False
+
+            # self.notify("should handle focus")
 
     def action_start_timer(self):
         button = self.query_one("#start_stop", Button)
