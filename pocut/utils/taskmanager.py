@@ -9,8 +9,14 @@ from dataclasses import dataclass, field
 
 import textual
 from textual import log
+from textual.message import Message
+
 import pocut.utils.task as task
 from pocut.utils.task import Task, Session
+
+
+class ShouldCheckDatabase(Message, bubble=True):
+    pass
 
 
 class PomodoroDB:
@@ -421,6 +427,14 @@ class PomodoroDB:
     def remove_tracking_tasks(self, task_id: int) -> None:
         with self.get_connection() as conn:
             conn.execute(f"""DELETE FROM tracked_tasks WHERE task_id = {task_id}""")
+            conn.execute(
+                """
+                UPDATE tasks
+                SET ongoing = FALSE
+                WHERE id = ?
+            """,
+                (task_id,),
+            )
 
     def start_session(self) -> int:
         """

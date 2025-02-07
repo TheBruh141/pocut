@@ -11,6 +11,7 @@ from pocut.config import DEFAULT_CONFIG_PATH, parse_args
 from pocut.pages import PomodoroTab, SettingsTab
 from pocut.pages.todo_screen import TodoTab
 from pocut.pages.widgets.todo_tab import TodoTask
+from pocut.utils.taskmanager import ShouldCheckDatabase
 
 
 class PocutApp(App):
@@ -101,7 +102,8 @@ class PocutApp(App):
                 )
                 yield self.pomodoro_tab
             with TabPane("Todos", id="todo_tab"):
-                yield TodoTab(self.state)
+                self.todo_tab = TodoTab(self.state)
+                yield self.todo_tab
 
             with TabPane("Settings", id="settings"):
                 yield SettingsTab(self.state)
@@ -192,7 +194,8 @@ class PocutApp(App):
         except Exception as e:
             exit(f"\n\n\n ACTUAL ERROR \nFailed to dump DOM: {e}\n\n\n")
 
-    @on(TodoTask.ShouldCheckDatabase)
+    @on(ShouldCheckDatabase)
     def handle_database_update(self):
         # self.notify("TOP LEVEL")
         self.pomodoro_tab.update_tracker()
+        self.todo_tab.update_self()

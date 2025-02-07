@@ -5,7 +5,7 @@ work_duration = 3000
 break_duration = 300
 
 [audio]
-finish_sound = "assets/sounds/bad-to-the-bone.mp3"
+finish_sound = "assets/sounds/Mice_on_venus.mp3"
 
 [todo]
 database_file_path = "pocut/db/todo.sqlite"

@@ -6,6 +6,8 @@ from textual.widgets import Static, Label, Rule
 from pocut.pages.widgets.common import SmallButton
 from pocut.pages.widgets.todo_tab import TodoTask
 from pocut.utils import PomodoroDB, Task
+from pocut.utils.task import TaskData
+from pocut.utils.taskmanager import ShouldCheckDatabase
 
 
 class TrackedTask(Static, can_focus=True):
@@ -41,6 +43,7 @@ class TrackedTask(Static, can_focus=True):
         # noinspection PyTypeChecker
         p: Tracker = self.parent.parent
         p.db.remove_tracking_tasks(self.info.id)
+        self.post_message(ShouldCheckDatabase())
         self.notify("untracked task")
         p.check_tasks()
 
@@ -63,8 +66,8 @@ class Tracker(Static, can_focus=False):
 
     def check_tasks(self) -> list[Task]:
         """
-        !!!NOTE!!! This function is called when the data is updated. It should be tread like
-                   @on(TodoTask.ShouldCheckDatabase)
+        !!!NOTE!!! This function is called when the data is updated. It should be treated like
+                   @on(ShouldCheckDatabase)
 
                    Since Textual does not have a proper way to propagate messages down
                    we are duct tape and hope for this thing to work.
@@ -73,11 +76,11 @@ class Tracker(Static, can_focus=False):
         We are not polling the database, but we are very agressively checking it.
         basically polling with more steps
         """
-        self.notify("updated")
+        # self.notify("updated")
         self.tasks = [Task.from_dict(t) for t in self.db.get_ongoing_tracked_tasks()]
         # self.notify(f"{self.db.get_ongoing_tracked_tasks()}")
         # self.notify(f"{self.tasks}")
-        # self.refresh(repaint=True, layout=True, recompose=True)
+        self.refresh(repaint=True, layout=True, recompose=True)
         return self.tasks
 
     def compose(self) -> ComposeResult:

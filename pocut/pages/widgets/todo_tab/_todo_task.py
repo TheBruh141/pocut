@@ -3,6 +3,7 @@ from textual import events, on
 from textual.app import ComposeResult
 from textual.containers import Container, Horizontal, Vertical
 from textual.message import Message
+from textual.widget import Widget
 from textual.widgets import Label, Button
 
 from pocut.pages.widgets.common import SmallButton
@@ -15,12 +16,24 @@ class TodoTask(Container, can_focus=True):
     # we can't have a property named self.task because
     # textual already has a property named task.
 
-    class ShouldCheckDatabase(Message, bubble=True):
-        pass
-
     def __init__(self, task: t.Task, **kwargs):
         super().__init__(**kwargs)
         self.info = task
+
+        """
+        this thing is being used as a mountpoint when a refresh happens
+        """
+        self.complete_button = SmallButton(
+            "\[x]" if self.info.completed == True else "[ ]",
+            id="complete-button",
+            # variant="success" if self.info.completed else "accent",
+            classes="completed" if self.info.completed else "not-completed",
+            disabled=False,
+            tooltip=Markdown(
+                f"**Press me** to make the task {"complete" if self.info.completed else "incomplete"}.\n"
+                "> Note, you need to press enter to access me "
+            ),
+        )
 
     def make_all_disabled(self) -> None:
         for widget in self.walk_children():
@@ -41,7 +54,7 @@ class TodoTask(Container, can_focus=True):
                     status = (
                         "Completed"
                         if self.info.completed
-                        else "Ongoing" if self.info.ongoing else "Tracking"
+                        else "Not Tracking" if not self.info.ongoing else "Tracking"
                     )
                     yield SmallButton("Status:", id="status-button")
                     yield Label(f" {status}", classes=f"status-{status.lower()}")
@@ -78,17 +91,7 @@ class TodoTask(Container, can_focus=True):
             #                 )
             with Vertical(id="task-status"):
                 # yield SmallButton("edit", classes="edit-button", disabled=True)
-                yield SmallButton(
-                    "\[x]" if self.info.completed == True else "[ ]",
-                    id="complete-button",
-                    # variant="success" if self.info.completed else "accent",
-                    classes="completed" if self.info.completed else "not-completed",
-                    disabled=False,
-                    tooltip=Markdown(
-                        f"**Press me** to make the task {"complete" if self.info.completed else "incomplete" }.\n"
-                        "> Note, you need to press enter to access me "
-                    ),
-                )
+                yield self.complete_button
                 yield SmallButton(
                     label="Delete",
                     id="delete-button",
@@ -102,7 +105,6 @@ class TodoTask(Container, can_focus=True):
     def handle_complete_button_press(self, event: Button.Pressed):
 
         event.button.label = "[ ]" if self.info.completed else "\[x]"
-        self.notify("ASDASDA")
         self.post_message(t.TaskData.Complete(self.info))
         pass
 

@@ -8,7 +8,12 @@ from pocut.pages.widgets.pomodoro_tab import TimeDisplay, Tracker
 from pocut.pages.widgets.pomodoro_tab import PhaseDisplay
 
 from pocut.state import AppState
-from pocut.utils.audio import initialize_audio, set_volume, play_sound_blocking
+from pocut.utils.audio import (
+    initialize_audio,
+    set_volume,
+    play_sound_time,
+)
+from pocut.utils.notifications import notify
 
 
 class PomodoroTab(Static):
@@ -52,9 +57,13 @@ class PomodoroTab(Static):
         """
         @brief Switch to the next phase when the timer completes.
         """
+        notify(
+            "Pomodoro Timer Up!",
+            f"congratulations on staying focused for {self.state.work_duration}",
+        )
         # Play the configured finish sound
         finish_sound = self.state.finish_sound
-        play_sound_blocking(finish_sound)
+        play_sound_time(finish_sound, 10, True, 5)
         if self.state.debug_mode:
             self.app.notify(f"Should have played {finish_sound}")
         # Switch phases and update the timer

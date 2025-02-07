@@ -32,4 +32,9 @@ def parse_args():
         const="dom.textual_dom_dump",  # Default filename if no argument is provided
         help="Dump DOM configuration to a file. Default: 'dom.textual_dom_dump'.",
     )
+    parser.add_argument(
+        "--untested",
+        action="store_true",
+        help="Allows you to run pocut in untested python versions.",
+    )
     return parser.parse_args()

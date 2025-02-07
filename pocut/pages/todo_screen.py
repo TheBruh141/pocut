@@ -1,4 +1,6 @@
+import asyncio
 from datetime import datetime
+from typing import Any
 
 from textual import on, work, lazy
 from textual.app import ComposeResult
@@ -10,6 +12,7 @@ from textual.containers import (
     VerticalScroll,
 )
 from textual.events import Event
+from textual.message_pump import Callback
 from textual.widgets import (
     Label,
     Button,
@@ -22,6 +25,7 @@ from pocut.pages.widgets.todo_tab import TodoTask
 from pocut.utils import PomodoroDB
 
 from pocut.pages.widgets.common import SmallButton
+from pocut.utils.taskmanager import ShouldCheckDatabase
 
 
 class TodoTab(Container):
@@ -36,17 +40,17 @@ class TodoTab(Container):
         super().__init__()
         self.state = state
         self.db = PomodoroDB()
-        self.task_widgets = []
-        self.focused_index = 0
+        self.task_widgets: list[TodoTask] = []
 
     def on_mount(self):
 
         for w in self.children:
-            w.border_title = f"{w.id if w.id else "NO FUCKGIN NAME"}"
+            w.border_title = f"{w.id if w.id else "NO COMNKING NAME"}"
 
         self.recompose()
 
     def compose(self) -> ComposeResult:
+        self.task_widgets = []  # flush
         with Horizontal(id="todo-tab-button-cluster"):
             yield SmallButton(label="Add Task", id="add-task")
 
@@ -86,7 +90,7 @@ class TodoTab(Container):
         """
         if event.button.id == "add-task":
             await self.app.push_screen(TaskCreatorModal(), wait_for_dismiss=True)
-            self.refresh(recompose=True)
+            self.persistent_refresh(recompose=True)
 
     # Handle task creation
     @on(t.TaskData.Create)
@@ -102,10 +106,16 @@ class TodoTab(Container):
 
         try:
             task_id = db.add_task(data.task)
-            self.post_message(TodoTask.ShouldCheckDatabase())
+            self.post_message(ShouldCheckDatabase())
             print(f"Task created with ID: {task_id}")
         except Exception as e:
             print(f"Error creating task: {e}")
+
+    def persistent_refresh(
+        self, repaint: bool = False, layout: bool = False, recompose: bool = False
+    ) -> None:
+        self.notify("Refreshing...")
+        self.refresh(repaint=repaint, layout=layout, recompose=recompose)
 
     # Handle task updates
     @on(t.TaskData.Update)
@@ -130,12 +140,12 @@ class TodoTab(Container):
         try:
             data.task.updated_at = datetime.now()
             db.update_task(data.task)
-            self.post_message(TodoTask.ShouldCheckDatabase())
+            self.post_message(ShouldCheckDatabase())
             print(f"Task with ID {data.task.id} updated.")
         except Exception as e:
             print(f"Error updating task: {e}")
 
-        self.refresh(repaint=True, recompose=True, layout=False)
+        self.persistent_refresh(repaint=True, recompose=True, layout=False)
 
     # Handle task deletion
     @on(t.TaskData.Delete)
@@ -149,7 +159,7 @@ class TodoTab(Container):
         db = PomodoroDB()
         try:
             db.delete_task(data.task.id)
-            self.post_message(TodoTask.ShouldCheckDatabase())
+            self.post_message(ShouldCheckDatabase())
             print(f"Task with ID {data.task.id} deleted.")
         except Exception as e:
             print(f"Error deleting task: {e}")
@@ -163,9 +173,9 @@ class TodoTab(Container):
         db = PomodoroDB()
         try:
             db.set_task_completion_task(data.task)
-            self.post_message(TodoTask.ShouldCheckDatabase())
+            self.post_message(ShouldCheckDatabase())
             print(f"Task with ID {data.task.id} updated.")
-            self.refresh(recompose=True, layout=True)
+            self.persistent_refresh(recompose=True, layout=True)
         except Exception as e:
             print(f"Error updating task: {e}")
 
@@ -175,3 +185,13 @@ class TodoTab(Container):
         # yep. I'll see my self out...
         self.on_button_pressed(Button.Pressed(Button(id="add-task")))
         # self.notify("pressed a")
+
+    def update_self(self):
+        """
+        This function is called specifically when an update to the database had been made
+        and we are aware of it. This allows it so that we don't have any data continuity issues.
+
+        :return:
+        """
+        self.persistent_refresh(recompose=True, layout=True)
+        pass
