@@ -98,6 +98,7 @@ class SettingsTab(Container):
                 # Update the state with the new file path
                 self.state.finish_sound = result
         elif event.button.id == "save_settings_button":
+            self.notify("saved!")
             self.validate_and_save()
 
     def validate_and_save(self):

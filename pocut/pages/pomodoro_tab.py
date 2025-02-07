@@ -7,7 +7,7 @@ from textual.widgets import Static, Button, Footer, Label
 from pocut.pages.widgets.pomodoro_tab import TimeDisplay, Tracker
 from pocut.pages.widgets.pomodoro_tab import PhaseDisplay
 
-from pocut.state import AppState
+from pocut.state import AppState, AppStateChanged
 from pocut.utils.audio import (
     initialize_audio,
     set_volume,
@@ -130,7 +130,15 @@ class PomodoroTab(Static):
             start_stop_button.variant = "success"
             self.app.notify(f"Switched to {phase} phase!")
 
-    @cache
+    # @cache
+    @on(AppStateChanged)
+    def handle_state_changed(self) -> None:
+        self.state = AppState(
+            config_path=self.state.config_path, debug_mode=self.state.debug_mode
+        )
+        self.query_one("#reset", Button).press()
+        # self.refresh(repaint=True, layout=True, recompose=True)
+
     def compose(self) -> ComposeResult:
         """
         @brief Compose the layout of the Pomodoro widget.

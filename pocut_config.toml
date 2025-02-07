@@ -1,7 +1,7 @@
 dark_mode = false
 
 [durations]
-work_duration = 3000
+work_duration = 180
 break_duration = 300
 
 [audio]

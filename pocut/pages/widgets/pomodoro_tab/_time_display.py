@@ -1,4 +1,6 @@
+import copy
 from datetime import datetime
+from typing import Callable
 
 import pytz
 from textual.containers import Vertical, Center
@@ -6,6 +8,7 @@ from textual.reactive import reactive, Reactive
 from textual.widgets import Static, ProgressBar, Digits, Label
 
 from pocut import AppState
+from pocut.state import AppStateChanged
 
 
 class WorldClock(Static):
@@ -18,7 +21,9 @@ class WorldClock(Static):
     time_display = reactive("")
     detail_level = reactive(1)  # Level of detail: 1 = minimal, 2 = detailed, 3 = full
 
-    def __init__(self, timezone: str = "UTC", detail_level: int = 1, **kwargs):
+    def __init__(
+        self, state: AppState, timezone: str = "UTC", detail_level: int = 1, **kwargs
+    ):
         """
         @brief Initialize the WorldClock with a specific timezone and detail level.
         @param timezone The timezone for the clock (default: "UTC").
@@ -28,6 +33,7 @@ class WorldClock(Static):
         self.timezone = timezone
         self.detail_level = detail_level
         self.set_interval(1, self.update_time)  # Update every second
+        self.state = copy.deepcopy(state)
 
     def on_mount(self) -> None:
         """
@@ -38,7 +44,17 @@ class WorldClock(Static):
     def update_time(self) -> None:
         """
         @brief Update the displayed time based on the current timezone and detail level.
+        also updates the state
         """
+        if (
+            self.state.config.__str__()
+            != AppState(self.state.config_path, self.state.debug_mode).config.__str__()
+        ):
+            self.post_message(AppStateChanged())
+            self.notify(
+                f"{AppState(self.state.config_path, self.state.debug_mode).config.__str__()}"
+            )
+            self.state = AppState(self.state.config_path, self.state.debug_mode)
         # tz = pytz.timezone(self.timezone)
         tz = pytz.timezone("Turkey")
         now = datetime.now(tz)
@@ -109,7 +125,8 @@ class TimeDisplay(Static):
         self.update_timer = None
         self.on_time_up_callback = None
         self.progress_bar = None  # ProgressBar instance
-        self.wc = WorldClock(timezone="UTC", id="utc_clock")
+
+        self.wc = WorldClock(state=state, timezone="UTC", id="utc_clock")
 
     def set_on_time_up_callback(self, callback):
         """

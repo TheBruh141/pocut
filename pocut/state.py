@@ -3,11 +3,24 @@ import toml
 import logging as log
 
 from textual.logging import TextualHandler
+from textual.message import Message
+
+from pocut.utils.notifications import notify
 
 log.basicConfig(
     level="NOTSET",
     handlers=[TextualHandler()],
 )
+
+
+class AppStateChanged(Message):
+    """
+    Message sent when the app state changes.
+    Used to dynamically update the app state.
+    """
+
+    bubble = True
+    pass
 
 
 class AppState:
@@ -23,6 +36,7 @@ class AppState:
         self.config: dict = self.load_config()
         self.is_work_phase = True
         self.debug_mode: bool = debug_mode
+        self.state_hash = hash(self.__get_current_config.__str__())
 
     def load_config(self) -> dict:
         """
@@ -52,8 +66,8 @@ class AppState:
             return default_config
 
     @property
-    def poll_config(self):
-        return AppState(self.config_path, self.debug_mode)
+    def __get_current_config(self) -> dict:
+        return toml.load(self.config_path)
 
     def save_config(self, config: dict) -> None:
         """
@@ -74,7 +88,7 @@ class AppState:
         Returns:
             int: Work duration in seconds.
         """
-        return self.config["durations"]["work_duration"]
+        return self.__get_current_config["durations"]["work_duration"]
 
     @work_duration.setter
     def work_duration(self, value: int) -> None:
@@ -95,7 +109,7 @@ class AppState:
         Returns:
             int: Break duration in seconds.
         """
-        return self.config["durations"]["break_duration"]
+        return self.__get_current_config["durations"]["break_duration"]
 
     @break_duration.setter
     def break_duration(self, value: int) -> None:
@@ -147,7 +161,9 @@ class AppState:
         Returns:
             str: Path to the start sound.
         """
-        return self.config["audio"].get("start_sound", "sounds/default_start.wav")
+        return self.__get_current_config["audio"].get(
+            "start_sound", "sounds/default_start.wav"
+        )
 
     @start_sound.setter
     def start_sound(self, value: str) -> None:
@@ -168,7 +184,9 @@ class AppState:
         Returns:
             str: Path to the stop sound.
         """
-        return self.config["audio"].get("stop_sound", "sounds/default_stop.wav")
+        return self.__get_current_config["audio"].get(
+            "stop_sound", "sounds/default_stop.wav"
+        )
 
     @stop_sound.setter
     def stop_sound(self, value: str) -> None:
@@ -183,7 +201,7 @@ class AppState:
 
     @property
     def database_path(self):
-        return self.config["todo"]["database_file_path"]
+        return self.__get_current_config["todo"]["database_file_path"]
 
     @database_path.setter
     def database_path(self, value: str):
@@ -192,4 +210,4 @@ class AppState:
 
     @property
     def clock_type(self):
-        return self.config["misc"]["clock_type"]
+        return self.__get_current_config["misc"]["clock_type"]
