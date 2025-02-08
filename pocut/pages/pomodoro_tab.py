@@ -140,7 +140,7 @@ class PomodoroTab(Static):
         # self.refresh(repaint=True, layout=True, recompose=True)
 
     def compose(self) -> ComposeResult:
-        """
+        """:
         @brief Compose the layout of the Pomodoro widget.
         @return ComposeResult containing the widget layout.
         """

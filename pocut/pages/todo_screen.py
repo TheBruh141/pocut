@@ -62,8 +62,18 @@ class TodoTab(Container):
         with ScrollableContainer():
             # Render uncompleted tasks
             if uncompleted_tasks:
-                with lazy.Reveal(VerticalScroll(id="uncompleted-tasks-section")):
-                    yield Label("Uncompleted Tasks", classes="section-title")
+
+                if len(uncompleted_tasks) >= 128:
+                    slot = lazy.Reveal(VerticalScroll(id="uncompleted-tasks-section"))
+                else:
+                    slot = VerticalScroll(id="uncompleted-tasks-section")
+
+                slot.border_title = f"TASKS ({len(uncompleted_tasks)})"
+                """
+                if the tasks size is bigger than 128 due to memory constrains,
+                we are opting to wait a lil more for lazy loading.
+                """
+                with slot:
                     for task in uncompleted_tasks:
                         task_widget = TodoTask(task)
                         self.task_widgets.append(task_widget)
@@ -71,8 +81,15 @@ class TodoTab(Container):
 
             # Render completed tasks
             if completed_tasks:
-                with lazy.Reveal(Vertical(id="completed-tasks-section")):
-                    yield Label("Completed Tasks", classes="section-title")
+                """
+                same here
+                """
+                if len(completed_tasks) >= 128:
+                    slot = lazy.Reveal(Vertical(id="completed-tasks-section"))
+                else:
+                    slot = VerticalScroll(id="completed-tasks-section")
+                slot.border_title = f"COMPLETED ({len(completed_tasks)})"
+                with slot:
                     for task in completed_tasks:
                         task_widget = TodoTask(task)
                         self.task_widgets.append(task_widget)

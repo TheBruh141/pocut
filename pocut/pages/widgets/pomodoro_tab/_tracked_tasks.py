@@ -1,12 +1,11 @@
-from textual import on, events, lazy
+import textual.events
+from textual import events, on
 from textual.app import ComposeResult
 from textual.containers import Container, Center, ScrollableContainer
+from textual.events import Focus
 from textual.widgets import Static, Label, Rule
 
-from pocut.pages.widgets.common import SmallButton
-from pocut.pages.widgets.todo_tab import TodoTask
 from pocut.utils import PomodoroDB, Task
-from pocut.utils.task import TaskData
 from pocut.utils.taskmanager import ShouldCheckDatabase
 
 
@@ -22,9 +21,7 @@ class TrackedTask(Static, can_focus=True):
         self.info = task
 
     def compose(self) -> ComposeResult:
-
         with Container(id="tracked-task-tracker"):
-
             yield Label(">>>", id="selector")
             yield Label(f"{self.info.id}")
             yield Label(f"{self.info.title}")
@@ -44,7 +41,7 @@ class TrackedTask(Static, can_focus=True):
         p: Tracker = self.parent.parent
         p.db.remove_tracking_tasks(self.info.id)
         self.post_message(ShouldCheckDatabase())
-        self.notify("untracked task")
+        self.notify(f"untracked task {self.info.title}")
         p.check_tasks()
 
     # noinspection PyTypeChecker
@@ -56,13 +53,13 @@ class TrackedTask(Static, can_focus=True):
         self.notify("complete task")
 
 
-class Tracker(Static, can_focus=False):
-    db: PomodoroDB
+class Tracker(Static, can_focus=True):
 
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
         self.db = PomodoroDB()
-        self.tasks: list[Task] = self.check_tasks()
+        self.tasks: list[Task] = []
+        self.check_tasks()
 
     def check_tasks(self) -> list[Task]:
         """
@@ -72,27 +69,19 @@ class Tracker(Static, can_focus=False):
                    Since Textual does not have a proper way to propagate messages down
                    we are duct tape and hope for this thing to work.
 
-
-        We are not polling the database, but we are very agressively checking it.
+        We are not polling the database, but we are very aggressively checking it.
         basically polling with more steps
         """
-        # self.notify("updated")
         self.tasks = [Task.from_dict(t) for t in self.db.get_ongoing_tracked_tasks()]
-        # self.notify(f"{self.db.get_ongoing_tracked_tasks()}")
-        # self.notify(f"{self.tasks}")
         self.refresh(repaint=True, layout=True, recompose=True)
         return self.tasks
 
     def compose(self) -> ComposeResult:
-        # self.notify("updated screen")
+
         with Center():
-            yield Label("# Tasks", id="title")
-            yield Rule(id="seperator")
+            yield Label("# Tasks", id="title", disabled=True)
+            yield Rule(id="separator", disabled=True)
 
-        with lazy.Reveal(ScrollableContainer()):
+        with ScrollableContainer():
             for t in self.tasks:
-                self.notify(t.__str__())
                 yield TrackedTask(t)
-
-    def on_mount(self):
-        self.check_tasks()

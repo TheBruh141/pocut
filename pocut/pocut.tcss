@@ -1,49 +1,64 @@
+$transparent: transparent
+$dark: black
+
+
 Screen {
     layers: one two three;
 }
+
 Tab {
     overflow: auto;
 }
 
 #todo-tab-button-cluster {
     height: 1;
+    margin: 0;
     #add-task {
-    margin-left: 4;
+        margin-left: 4;
     }
     #edit-task {
-    margin-right: 5;
-    color: yellow;
+        margin-right: 5;
+        color: $text-warning;
     }
-    margin: 0;
+}
+
+TodoTab {
+    VerticalScroll {
+        border: round $secondary;
+        scrollbar-gutter: stable;
+        scrollbar-size-vertical: 1;
+    }
 }
 
 TodoTask {
-        layers: a b;
+    layers: a b;
+    height: 4;
+    background: $background 10%;
+    padding: 0 2 0 3;
+    margin: 1;
+    width: 100%;
+
+    #task-status {
+        dock: right;
+        layer: two;
         height: 4;
-        background: black 10%;
-        padding: 0 2 0 3;
-        margin: 1;
-        width: 100%;
+        width: 13;
+    }
 
-        #task-status {
-            dock: right ;
-            layer: two;
-            height: 4;
-            width: 13;
-        }
-        SmallButton{
-            width: auto;
-            min-width: 10;
-            padding: 0 1;
-            margin-left: 3;
-            margin-bottom: 1;
-        }
+    SmallButton {
+        width: auto;
+        min-width: 10;
+        padding: 0 1;
+        margin-left: 3;
+        margin-bottom: 1;
+    }
 
-        #text {
-            text-style: italic;
-            color: gray 90%;
-        }
+    #text {
+        text-style: italic;
+        color: $text-secondary 90%;
+    }
 }
+
 .completed {
 }
 
@@ -52,21 +67,22 @@ TodoTask {
 
 TodoTask:focus-within {
     background-tint: $foreground 50%;
-    border: round gray;
+    border: round $secondary;
     height: 5;
+
     #title {
         text-style: bold;
         color: $primary 90%;
     }
+
     #text {
-    text-style: italic;
+        text-style: italic;
     }
 
     SmallButton {
-    background: black 10% ;
+        background: $background 10%;
     }
 }
-
 
 TimeDisplay {
     content-align: center middle;
@@ -74,67 +90,69 @@ TimeDisplay {
     height: 1fr;
 }
 
-$phase_show_border_color: white;
+$phase_show_border_color: $foreground;
 
 TaskCreatorModal {
-
     align: center middle;
+    background: $background 50%;
+
     Container {
         width: 70%;
         height: 55%;
-        background: black;
-        border: thick round gray 30%;
+        background: $background;
+        border: thick round $secondary 30%;
     }
+
     HorizontalScroll {
-    height: 5;
+        height: 5;
     }
-    background: black 50%;
 }
 
 #settings_container {
     #sound_settings {
-        border: gray;
-        border-title-color: white;
+        border: $secondary;
+        border-title-color: $foreground;
         max-height: 5;
         #browse_sound_button {
             dock: right;
         }
     }
+
     #time_settings {
         Input {
             padding: 0 2;
             offset: 0 0;
         }
-        border: gray;
-        border-title-color: white;
+        border: $secondary;
+        border-title-color: $foreground;
         max-height: 10;
         #browse_sound_button {
             dock: right;
-    }
+        }
     }
 
     #misc {
-        border: gray;
-        border-title-color: white;
+        border: $secondary;
+        border-title-color: $foreground;
         height: 5;
     }
 }
 
-
-#settings_tab{
-
+#settings_tab {
     #duration_settings {
-        border: gray;
-        border-title-color: white;
+        border: $secondary;
+        border-title-color: $foreground;
     }
+
     Label {
         text-style: bold;
         padding: 0 4;
     }
 }
+
 #file_selector_modal {
-    align: center middle ;
-    border: round gray;
+    align: center middle;
+    border: round $secondary;
     padding: 1;
     #file_selector_help {
         max-width: 50%;
@@ -145,39 +163,33 @@ TaskCreatorModal {
 }
 
 .modal-title {
-    /*: bold;*/
     margin: 1 0;
 }
 
 .modal-actions {
     align: right middle;
-    /*gap: 0.5rem;*/
 }
 
 .success-message {
-    color: green;
+    color: $text-success;
 }
 
 .error-message {
-    color: red;
+    color: $text-error;
 }
 
 #clock_cluster {
-    outline: round white 40%;
+    outline: round $foreground 40%;
     padding: 2 8;
     max-height: 87vh;
     align: center middle !important;
 
     #timer_digits {
-            /*
-            please note that this element is centered in
-            a hacky way using the Center widget before mounting.
-            */
-            width: auto;
-        }
+        width: auto;
+    }
 
     WorldClock {
-        color: white 33%;
+        color: $foreground 33%;
         text-align: center;
         padding-top: 1;
         margin: 0;
@@ -186,8 +198,8 @@ TaskCreatorModal {
     #main_clock {
         max-height: 9;
         align: center middle;
-        border: white 12%;
-        border-title-color: grey;
+        border: $foreground 12%;
+        border-title-color: $secondary;
     }
 
     #phase_show {
@@ -195,21 +207,19 @@ TaskCreatorModal {
         min-width: 50%;
         height: 3;
         overflow: scroll;
-        outline: gray;
+        outline: $secondary;
         outline-top: none;
         outline-bottom: round $phase_show_border_color;
         outline-left: round $phase_show_border_color;
-        outline-right: round  $phase_show_border_color;
+        outline-right: round $phase_show_border_color;
         offset: 0 -1;
     }
 
-    #time_left_progress_bar{
+    #time_left_progress_bar {
         width: 1fr;
         align: center bottom;
         offset: 0 1;
     }
-
-
 }
 
 Tracker {
@@ -217,84 +227,94 @@ Tracker {
     align: center middle;
     width: auto;
     max-width: 65%;
+    height: 10;
+
     #title {
-        opacity: 40%;
+        opacity: 80%;
         width: 100%;
-        align:center middle ;
+        align: center middle;
         text-align: center;
-        background: transparent;
+        background: $transparent;
+        color: $primary;
     }
-    #seperator {
-        opacity: 40%;
-        color: gray;
+
+    Rule {
+        opacity: 80%;
+        color: $secondary;
         width: 100%;
     }
+
     Label {
         width: 40;
         text-align: center;
+        color: $accent;
     }
 
-    height: 10;
-    #tracker-grid{
+    #tracker-grid {
         layout: grid;
         grid-size: 5;
         grid-columns: 8% 23% 23% 23% 23%;
     }
+
     #selector {
         visibility: hidden;
     }
+
     .visible {
         visibility: visible !important;
-        text-align:right;
+        text-align: right;
+        color: $primary !important;
     }
 
     #tracked-task-tracker {
         layout: grid;
         grid-columns: 8% 23% 23% 23% 23%;
         grid-size: 5;
-        height:1;
-
+        height: 1;
 
         #selector {
-        color: white;
+            color: $dark;
         }
+    }
 
+    TrackedTask {
+        color: $accent;
     }
-    TrackedTask{
-        color: gray;
-    }
-    TrackedTask:focus{
+
+    TrackedTask:focus {
         text-style: italic;
+        color: $foreground;
     }
-
-
 }
-
+Tracker.limbo {
+border: white;
+}
 Tracker:focus {
-    background-tint: red;
+    background-tint: $primary;
 }
 
-#button_cluster{
+#button_cluster {
     align: center middle;
 
     Button {
-        background: transparent;
-        border: tab white 60%;
+        background: $transparent;
+        border: tab $foreground 60%;
         padding: 1;
-
     }
+
     #start_stop {
         border-right: none;
-        background: green 30%;
+        background: $success 30%;
     }
+
     #reset {
         border-right: none;
         border-left: none;
-        background: yellow 10%;
+        background: $warning 10%;
     }
+
     #toggle_phase {
         border-left: none;
-        background: red 10%;
-
+        background: $error 10%;
     }
 }
