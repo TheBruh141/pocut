@@ -216,9 +216,8 @@ TaskCreatorModal {
     }
 
     #time_left_progress_bar {
-        width: 1fr;
-        align: center bottom;
-        offset: 0 1;
+        width: 100;
+        align: center bottom !important;
     }
 }
 
@@ -304,17 +303,18 @@ Tracker:focus {
 
     #start_stop {
         border-right: none;
-        background: $success 30%;
+        background: $success 80%;
     }
 
     #reset {
         border-right: none;
         border-left: none;
-        background: $warning 10%;
+        background: $warning 80%;
+        color: black ;
     }
 
     #toggle_phase {
         border-left: none;
-        background: $error 10%;
+        background: $error 80%;
     }
 }

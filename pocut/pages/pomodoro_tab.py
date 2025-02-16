@@ -13,7 +13,7 @@ from pocut.utils.audio import (
     set_volume,
     play_sound_time,
 )
-from pocut.utils.notifications import notify
+from pocut.utils.notifications import notify as system_notifications
 
 
 class PomodoroTab(Static):
@@ -57,10 +57,11 @@ class PomodoroTab(Static):
         """
         @brief Switch to the next phase when the timer completes.
         """
-        notify(
-            "Pomodoro Timer Up!",
-            f"congratulations on staying focused for {self.state.work_duration}",
+        system_notifications(
+            "Pomodoro Timer Is Up!",
+            f"congratulations on staying focused for {self.state.work_duration // 60} minutes and {self.state.work_duration % 60} seconds.",
         )
+
         # Play the configured finish sound
         finish_sound = self.state.finish_sound
         play_sound_time(finish_sound, 10, True, 5)

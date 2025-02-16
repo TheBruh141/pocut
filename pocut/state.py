@@ -5,7 +5,6 @@ import logging as log
 from textual.logging import TextualHandler
 from textual.message import Message
 
-from pocut.utils.notifications import notify
 
 log.basicConfig(
     level="NOTSET",

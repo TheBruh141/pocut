@@ -9,16 +9,20 @@ import os
 def notify(title, message) -> None:
     """
     Send a notification (cross-platform).
+    :rtype: object
     :param title:
     :param message:
     :return: None
     """
-    if os.name == "nt":
-        notify_windows(title, message)
-        return
-    else:
-        notify_linux(title, message)
-        return
+    try:
+        if os.name == "nt":
+            notify_windows(title, message)
+            return
+        else:
+            notify_linux(title, message)
+            return
+    except:
+        raise Exception("HOW??")
 
 
 def notify_windows(title, message) -> None:
@@ -40,7 +44,7 @@ def notify_linux(title, message) -> None:
     :param message:
     :return:
     """
-    os.system("notify-send {} {}".format(title, message))
+    os.system('notify-send "{}" "{}"'.format(title, message))
 
 
 if __name__ == "__main__":

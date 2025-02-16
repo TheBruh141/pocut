@@ -2,15 +2,14 @@ import asyncio
 import json
 import time
 
-from textual import on, events
+from textual import on
 from textual.app import App, ComposeResult
-from textual.widgets import TabbedContent, TabPane, Tabs, Button
+from textual.widgets import TabbedContent, TabPane
 
 from pocut import AppState
-from pocut.config import DEFAULT_CONFIG_PATH, parse_args
+from pocut.config import DEFAULT_CONFIG_PATH
 from pocut.pages import PomodoroTab, SettingsTab
 from pocut.pages.todo_screen import TodoTab
-from pocut.pages.widgets.todo_tab import TodoTask
 from pocut.utils.taskmanager import ShouldCheckDatabase
 
 
@@ -25,10 +24,10 @@ class PocutApp(App):
     """
 
     CSS_PATH = "pocut.tcss"
-    # BINDINGS = [
-    #     ("a", "previous_tab", "Switch to the previous tab"),
-    #     ("d", "next_tab", "Switch to the next tab"),
-    # ]
+    BINDINGS = [
+        ("a", "previous_tab", "Switch to the previous tab"),
+        ("d", "next_tab", "Switch to the next tab"),
+    ]
     _tabs: TabbedContent
 
     def __init__(self, debug: bool, dump_dom):
@@ -44,6 +43,7 @@ class PocutApp(App):
         self.state = AppState(DEFAULT_CONFIG_PATH, debug_mode=debug)
         self.dump_dom_path = dump_dom
         self.dump_dom_task = None
+        self.theme = "catppuccin-mocha"
 
     async def on_mount(self):
         """
@@ -107,6 +107,26 @@ class PocutApp(App):
 
             with TabPane("Settings", id="settings"):
                 yield SettingsTab(self.state)
+
+    def action_previous_tab(self) -> None:
+        # Get all TabPane widgets from the TabbedContent
+
+        tabs = list(self._tabs.query(TabPane))
+        current_id = self._tabs.active
+        current_index = next(
+            (i for i, tab in enumerate(tabs) if tab.id == current_id), 0
+        )
+        new_index = (current_index - 1) % len(tabs)
+        self._tabs.active = tabs[new_index].id
+
+    def action_next_tab(self) -> None:
+        tabs = list(self._tabs.query(TabPane))
+        current_id = self._tabs.active
+        current_index = next(
+            (i for i, tab in enumerate(tabs) if tab.id == current_id), 0
+        )
+        new_index = (current_index + 1) % len(tabs)
+        self._tabs.active = tabs[new_index].id
 
     def action_set_durations(self, work: int, break_: int) -> None:
         """

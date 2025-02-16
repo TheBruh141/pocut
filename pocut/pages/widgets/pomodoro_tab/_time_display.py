@@ -9,6 +9,8 @@ from textual.widgets import Static, ProgressBar, Digits, Label
 
 from pocut import AppState
 from pocut.state import AppStateChanged
+from pocut.utils.session_slice_progressbar import SessionSlicesProgressBar
+from pocut.utils.task import SessionSlice
 
 
 class WorldClock(Static):
@@ -135,6 +137,7 @@ class TimeDisplay(Static):
         """
         self.on_time_up_callback = callback
 
+    # noinspection PyTypeChecker
     def on_mount(self) -> None:
         """
         @brief Called when the widget is mounted. Sets up the timer update interval and progress bar.
@@ -143,9 +146,16 @@ class TimeDisplay(Static):
         self.border_title = "Time Remaining"
 
         # Create and add the ProgressBar widget
+        # TODO:
+        # self.progress_bar = SessionSlicesProgressBar(
+        #     total=self.state.work_duration,
+        #     id="time_left_progress_bar",
+        # )
+
         self.progress_bar = ProgressBar(
             total=100,
-            id="time_left_progress_bar",
+            show_bar=True,
+            show_percentage=True,
             show_eta=False,
         )
         self.time_str: str = self.calculate_time(self.state.work_duration)
@@ -154,7 +164,9 @@ class TimeDisplay(Static):
         else:
             self.digits = Label(self.time_str)
 
-        self.mount(Vertical(Center(self.digits), Center(self.wc), self.progress_bar))
+        self.mount(
+            Vertical(Center(self.digits), Center(self.wc), Center(self.progress_bar))
+        )
 
         self.update_progress_bar()
 

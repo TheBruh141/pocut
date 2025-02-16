@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 import rich.repr
 from textual.events import Event
@@ -219,6 +219,20 @@ class TaskData(Event):
 
 
 @rich.repr.auto
+@dataclass(frozen=True)
+class SessionSlice:
+    """
+    Represents a session slice for a Task.
+    Attributes:
+        time_allocated: The time allocated for this session slice. (in seconds).
+        task_id: The task ID.
+    """
+
+    time_allocated: int
+    task_id: int
+
+
+@rich.repr.auto
 @dataclass
 class Session:
     """
@@ -235,9 +249,14 @@ class Session:
     """
 
     id: Optional[int] = None
+    slices: List[SessionSlice] = field(default_factory=list)
     start_time: datetime = field(default_factory=datetime.now)
     end_time: Optional[datetime] = None
     tasks: list[int] = field(default_factory=list)  # List of task IDs
     completed: bool = False
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
+
+    @property
+    def is_sliceless(self) -> bool:
+        return len(self.slices) != 0
